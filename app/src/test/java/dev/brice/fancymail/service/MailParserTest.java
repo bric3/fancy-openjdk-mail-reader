@@ -862,4 +862,40 @@ class MailParserTest {
                 .as("Expected no code blocks in prose-only list, but got %d fence markers", fenceCount)
                 .isEqualTo(0);
     }
+
+    @Test
+    void parse_codeInNestedBlockquotes_detectedAsFencedBlock() {
+        // Code blocks inside nested blockquotes should be detected and fenced
+        // This tests deeply nested blockquotes like "> > >" with indented code
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>\n" +
+                "&gt; &gt; &gt; disassemble a value, for example:\n" +
+                "&gt; &gt; &gt;\n" +
+                "&gt; &gt; &gt;    record ColorPoint(int x, int y, RGB color) {}\n" +
+                "&gt; &gt; &gt;\n" +
+                "&gt; &gt; &gt;    void somethingImportant(ColorPoint cp) {\n" +
+                "&gt; &gt; &gt;        if (cp instanceof ColorPoint(var x, var y, var c)) {\n" +
+                "&gt; &gt; &gt;            // important code\n" +
+                "&gt; &gt; &gt;        }\n" +
+                "&gt; &gt; &gt;    }\n" +
+                "&gt; &gt; &gt;\n" +
+                "&gt; &gt; &gt; The use of pattern matching is great.\n" +
+                "</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // Code should be in fenced blocks within the blockquote
+        assertThat(parsed.bodyMarkdown())
+                .contains("```")
+                .contains("record ColorPoint")
+                .contains("void somethingImportant");
+
+        // The prose should NOT be in code blocks
+        assertThat(parsed.bodyMarkdown())
+                .contains("disassemble a value")
+                .contains("pattern matching is great");
+    }
 }

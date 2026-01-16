@@ -747,10 +747,14 @@ public class MailParser {
      */
     private record IndentedCodeInfo(String prefix, String code) {}
 
+    // Pattern to match blockquote prefixes like ">", "> >", ">>", "> > >", etc.
+    private static final Pattern BLOCKQUOTE_PREFIX_PATTERN = Pattern.compile("^((?:>[ ]?)+)");
+
     /**
      * Check if a line is an indented code block line and extract its components.
      * Returns null if not an indented code line.
      * <p>
+     * Handles nested blockquotes like "> > >    code" or ">>>    code".
      * Note: Blockquote normalization may add extra spaces, so we strip leading space from code.
      */
     private IndentedCodeInfo getIndentedCodeInfo(String line) {
@@ -759,24 +763,23 @@ public class MailParser {
             return new IndentedCodeInfo("", line.substring(4));
         }
 
-        // Blockquote with indented code (> + spaces, at least 4 spaces for code block)
+        // Blockquote with indented code (handles nested blockquotes)
         if (line.startsWith(">")) {
-            // Find where the > prefix ends (including optional space after >)
-            int afterQuote = 1;
-            if (line.length() > 1 && line.charAt(1) == ' ') {
-                afterQuote = 2;
-            }
-            String rest = line.substring(afterQuote);
-            // Need at least 4 spaces for a code block
-            if (rest.startsWith("    ")) {
-                // Strip exactly 4 spaces, then strip any additional leading space
-                // (blockquote normalization may have added extra)
-                String code = rest.substring(4);
-                // Only strip one leading space if present (from normalization)
-                if (code.startsWith(" ") && !code.startsWith("  ")) {
-                    code = code.substring(1);
+            Matcher matcher = BLOCKQUOTE_PREFIX_PATTERN.matcher(line);
+            if (matcher.find()) {
+                String prefix = matcher.group(1);
+                String rest = line.substring(prefix.length());
+                // Need at least 4 spaces for a code block
+                if (rest.startsWith("    ")) {
+                    // Strip exactly 4 spaces, then strip any additional leading space
+                    // (blockquote normalization may have added extra)
+                    String code = rest.substring(4);
+                    // Only strip one leading space if present (from normalization)
+                    if (code.startsWith(" ") && !code.startsWith("  ")) {
+                        code = code.substring(1);
+                    }
+                    return new IndentedCodeInfo(prefix, code);
                 }
-                return new IndentedCodeInfo(line.substring(0, afterQuote), code);
             }
         }
 
