@@ -20,6 +20,7 @@ public record ParsedMail(
         String list,
         String bodyMarkdown,
         String bodyHtml,
-        String originalUrl
+        String originalUrl,
+        MailNavigation navigation
 ) {
 }

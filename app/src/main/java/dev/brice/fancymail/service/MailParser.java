@@ -9,6 +9,7 @@
  */
 package dev.brice.fancymail.service;
 
+import dev.brice.fancymail.model.MailNavigation;
 import dev.brice.fancymail.model.MailPath;
 import dev.brice.fancymail.model.ParsedMail;
 import jakarta.inject.Singleton;
@@ -93,6 +94,9 @@ public class MailParser {
             bodyHtml = body != null ? body.html() : "";
         }
 
+        // Extract navigation links
+        MailNavigation navigation = extractNavigation(doc, mailPath);
+
         LOG.debug("Parsed mail: subject='{}', from='{}', email='{}', date='{}'",
                 subject, from, email, date);
 
@@ -104,7 +108,8 @@ public class MailParser {
                 mailPath.list(),
                 bodyMarkdown,
                 bodyHtml,
-                mailPath.toOriginalUrl()
+                mailPath.toOriginalUrl(),
+                navigation
         );
     }
 
@@ -297,6 +302,94 @@ public class MailParser {
             }
         }
         return false;
+    }
+
+    /**
+     * Extract navigation links from pipermail HTML.
+     * Pipermail has navigation at the top and bottom with prev/next message links
+     * and links to sorted indexes (by date, thread, subject, author).
+     */
+    private MailNavigation extractNavigation(Document doc, MailPath mailPath) {
+        MailNavigation.NavLink prevMessage = null;
+        MailNavigation.NavLink nextMessage = null;
+        String dateIndexUrl = null;
+        String threadIndexUrl = null;
+        String subjectIndexUrl = null;
+        String authorIndexUrl = null;
+
+        // Find navigation UL elements
+        Elements uls = doc.select("ul");
+        for (Element ul : uls) {
+            if (!isNavigationList(ul)) {
+                continue;
+            }
+
+            // Extract prev/next message links
+            Elements lis = ul.select("li");
+            for (Element li : lis) {
+                String text = li.text().toLowerCase();
+                Element link = li.selectFirst("a");
+
+                if (link != null) {
+                    String href = link.attr("href");
+                    String linkText = link.text().trim();
+
+                    if (text.contains("previous message")) {
+                        // Rewrite to local server URL
+                        String localUrl = rewriteNavLink(href, mailPath);
+                        prevMessage = new MailNavigation.NavLink(localUrl, linkText);
+                    } else if (text.contains("next message")) {
+                        String localUrl = rewriteNavLink(href, mailPath);
+                        nextMessage = new MailNavigation.NavLink(localUrl, linkText);
+                    }
+                }
+            }
+
+            // Extract index links (keep pointing to pipermail)
+            Elements indexLinks = ul.select("a");
+            String baseUrl = "https://mail.openjdk.org/pipermail/" + mailPath.list() + "/" + mailPath.yearMonth() + "/";
+            for (Element link : indexLinks) {
+                String href = link.attr("href");
+                if (href.contains("date.html")) {
+                    dateIndexUrl = baseUrl + href;
+                } else if (href.contains("thread.html")) {
+                    threadIndexUrl = baseUrl + href;
+                } else if (href.contains("subject.html")) {
+                    subjectIndexUrl = baseUrl + href;
+                } else if (href.contains("author.html")) {
+                    authorIndexUrl = baseUrl + href;
+                }
+            }
+
+            // Only need to process the first navigation list
+            if (prevMessage != null || nextMessage != null) {
+                break;
+            }
+        }
+
+        return new MailNavigation(
+                prevMessage,
+                nextMessage,
+                dateIndexUrl,
+                threadIndexUrl,
+                subjectIndexUrl,
+                authorIndexUrl
+        );
+    }
+
+    /**
+     * Rewrite a navigation link (like "004313.html") to a local server URL.
+     */
+    private String rewriteNavLink(String href, MailPath mailPath) {
+        if (href == null || href.isBlank()) {
+            return href;
+        }
+        // Extract message ID from href like "004313.html"
+        if (href.matches("\\d+\\.html")) {
+            String messageId = href.replace(".html", "");
+            return "/rendered/" + mailPath.list() + "/" + mailPath.yearMonth() + "/" + messageId + ".html";
+        }
+        return href;
     }
 
     /**

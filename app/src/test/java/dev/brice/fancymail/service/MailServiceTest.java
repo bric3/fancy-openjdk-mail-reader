@@ -62,7 +62,7 @@ class MailServiceTest {
         MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
         ParsedMail cachedMail = new ParsedMail(
                 "Cached Subject", "Author", "email@test.com", "Date",
-                "test-list", "body md", "body html", "url"
+                "test-list", "body md", "body html", "url", null
         );
         when(mailCache.get(mailPath)).thenReturn(Optional.of(cachedMail));
 
@@ -146,7 +146,7 @@ class MailServiceTest {
         MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
         ParsedMail cachedMail = new ParsedMail(
                 "Subject", "Author", "email@test.com", "Date",
-                "test-list", "body", "body", "url"
+                "test-list", "body", "body", "url", null
         );
         when(mailCache.get(mailPath)).thenReturn(Optional.of(cachedMail));
 

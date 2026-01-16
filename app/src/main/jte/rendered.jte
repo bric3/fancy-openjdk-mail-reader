@@ -21,6 +21,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${title} - Fancy Mail</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         * {
             box-sizing: border-box;
@@ -176,6 +177,56 @@
         .actions a:hover {
             background: #e0e0e0;
         }
+        .nav-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin: 20px 0;
+            font-size: 0.9em;
+        }
+        .nav-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .nav-messages {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .nav-link {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .nav-link:hover {
+            text-decoration: underline;
+        }
+        .nav-link.disabled {
+            color: #999;
+            cursor: default;
+        }
+        .nav-link.disabled:hover {
+            text-decoration: none;
+        }
+        .nav-indexes {
+            display: flex;
+            gap: 8px;
+            color: #666;
+        }
+        .nav-indexes a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .nav-indexes a:hover {
+            text-decoration: underline;
+        }
+        .external-icon {
+            font-size: 0.75em;
+            margin-left: 3px;
+            opacity: 0.7;
+        }
     </style>
 </head>
 <body>
@@ -207,9 +258,43 @@
                 </div>
                 <div class="meta-item">
                     <span class="meta-label">Original:</span>
-                    <a href="${mail.originalUrl()}" target="_blank">${mail.originalUrl()}</a>
+                    <a href="${mail.originalUrl()}" target="_blank">${mail.originalUrl()} <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
                 </div>
             </div>
+
+            @if(mail.navigation() != null)
+            <div class="nav-section">
+                <div class="nav-row">
+                    <div class="nav-messages">
+                        @if(mail.navigation().prevMessage() != null)
+                        <span>&#8592; <a href="${mail.navigation().prevMessage().url()}" class="nav-link">${mail.navigation().prevMessage().title()}</a></span>
+                        @else
+                        <span class="nav-link disabled">&#8592; No previous message</span>
+                        @endif
+                        @if(mail.navigation().nextMessage() != null)
+                        <span><a href="${mail.navigation().nextMessage().url()}" class="nav-link">${mail.navigation().nextMessage().title()}</a> &#8594;</span>
+                        @else
+                        <span class="nav-link disabled">No next message &#8594;</span>
+                        @endif
+                    </div>
+                    <div class="nav-indexes">
+                        <span>Sort by:</span>
+                        @if(mail.navigation().dateIndexUrl() != null)
+                        <a href="${mail.navigation().dateIndexUrl()}" target="_blank">date <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
+                        @endif
+                        @if(mail.navigation().threadIndexUrl() != null)
+                        <a href="${mail.navigation().threadIndexUrl()}" target="_blank">thread <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
+                        @endif
+                        @if(mail.navigation().subjectIndexUrl() != null)
+                        <a href="${mail.navigation().subjectIndexUrl()}" target="_blank">subject <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
+                        @endif
+                        @if(mail.navigation().authorIndexUrl() != null)
+                        <a href="${mail.navigation().authorIndexUrl()}" target="_blank">author <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
+                        @endif
+                    </div>
+                </div>
+            </div>
+            @endif
 
             <hr>
 
@@ -217,13 +302,47 @@
                 $unsafe{mail.bodyHtml()}
             </div>
 
+            @if(mail.navigation() != null)
+            <div class="nav-section">
+                <div class="nav-row">
+                    <div class="nav-messages">
+                        @if(mail.navigation().prevMessage() != null)
+                        <span>&#8592; <a href="${mail.navigation().prevMessage().url()}" class="nav-link">${mail.navigation().prevMessage().title()}</a></span>
+                        @else
+                        <span class="nav-link disabled">&#8592; No previous message</span>
+                        @endif
+                        @if(mail.navigation().nextMessage() != null)
+                        <span><a href="${mail.navigation().nextMessage().url()}" class="nav-link">${mail.navigation().nextMessage().title()}</a> &#8594;</span>
+                        @else
+                        <span class="nav-link disabled">No next message &#8594;</span>
+                        @endif
+                    </div>
+                    <div class="nav-indexes">
+                        <span>Sort by:</span>
+                        @if(mail.navigation().dateIndexUrl() != null)
+                        <a href="${mail.navigation().dateIndexUrl()}" target="_blank">date <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
+                        @endif
+                        @if(mail.navigation().threadIndexUrl() != null)
+                        <a href="${mail.navigation().threadIndexUrl()}" target="_blank">thread <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
+                        @endif
+                        @if(mail.navigation().subjectIndexUrl() != null)
+                        <a href="${mail.navigation().subjectIndexUrl()}" target="_blank">subject <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
+                        @endif
+                        @if(mail.navigation().authorIndexUrl() != null)
+                        <a href="${mail.navigation().authorIndexUrl()}" target="_blank">author <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
+                        @endif
+                    </div>
+                </div>
+            </div>
+            @endif
+
             <div class="footer">
                 <p>
-                    <em>Source: <a href="${mail.originalUrl()}" target="_blank">${mail.list()} mailing list</a></em>
+                    <em>Source: <a href="${mail.originalUrl()}" target="_blank">${mail.list()} mailing list <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a></em>
                 </p>
                 <div class="actions">
                     <a href="/markdown/${list}/${yearMonth}/${id}.md" target="_blank">View Markdown</a>
-                    <a href="${mail.originalUrl()}" target="_blank">View Original</a>
+                    <a href="${mail.originalUrl()}" target="_blank">View Original <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
                 </div>
             </div>
         @endif

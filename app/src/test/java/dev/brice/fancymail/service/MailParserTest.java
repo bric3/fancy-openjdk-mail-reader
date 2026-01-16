@@ -373,6 +373,33 @@ class MailParserTest {
     }
 
     @Test
+    void parse_extractsNavigationLinks() {
+        // Navigation links should be extracted from pipermail HTML
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<UL>" +
+                "<LI>Previous message (by thread): <A HREF=\"004313.html\">Previous Subject</A></LI>" +
+                "<LI>Next message (by thread): <A HREF=\"004307.html\">Next Subject</A></LI>" +
+                "<LI><B>Messages sorted by:</B> " +
+                "<a href=\"date.html#4309\">[ date ]</a> " +
+                "<a href=\"thread.html#4309\">[ thread ]</a></LI>" +
+                "</UL>" +
+                "<PRE>Body content</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "004309");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        assertThat(parsed.navigation()).isNotNull();
+        assertThat(parsed.navigation().prevMessage()).isNotNull();
+        assertThat(parsed.navigation().prevMessage().url()).isEqualTo("/rendered/test-list/2026-January/004313.html");
+        assertThat(parsed.navigation().prevMessage().title()).isEqualTo("Previous Subject");
+        assertThat(parsed.navigation().nextMessage()).isNotNull();
+        assertThat(parsed.navigation().nextMessage().url()).isEqualTo("/rendered/test-list/2026-January/004307.html");
+        assertThat(parsed.navigation().dateIndexUrl()).contains("date.html");
+        assertThat(parsed.navigation().threadIndexUrl()).contains("thread.html");
+    }
+
+    @Test
     void parse_originalMessageSeparator_rendersAsStyledSeparator() {
         // "----- Original Message -----" should be converted to styled separator
         String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +

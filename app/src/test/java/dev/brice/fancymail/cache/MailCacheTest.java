@@ -35,7 +35,8 @@ class MailCacheTest {
                 "test-list",
                 "# Body markdown",
                 "<h1>Body HTML</h1>",
-                "https://mail.openjdk.org/pipermail/test-list/2026-January/" + id + ".html"
+                "https://mail.openjdk.org/pipermail/test-list/2026-January/" + id + ".html",
+                null
         );
     }
 
