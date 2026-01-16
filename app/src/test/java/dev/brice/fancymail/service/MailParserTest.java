@@ -320,4 +320,55 @@ class MailParserTest {
         // Should be rendered as regular paragraph text, not code
         assertThat(parsed.bodyHtml()).doesNotContain("<pre><code>just some");
     }
+
+    @Test
+    void parse_shortLineWithPunctuation_preservesLineBreak() {
+        // Short lines ending with punctuation should have line breaks preserved
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>Hello Gavin,\n" +
+                "healing the differences between a case constant is something we should continue.</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // Should have a <br> between greeting and message, not merged into single line
+        assertThat(parsed.bodyHtml()).contains("<br");
+        assertThat(parsed.bodyHtml()).doesNotContain("Gavin, healing");
+    }
+
+    @Test
+    void parse_signatureLines_preservesLineBreaks() {
+        // Signature lines like "Best regards," followed by name should preserve breaks
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>Wishing you a happy and successful 2026!\n" +
+                "Gavin</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // Should have line break between wish and name
+        assertThat(parsed.bodyHtml()).contains("<br");
+        assertThat(parsed.bodyHtml()).doesNotContain("2026! Gavin");
+    }
+
+    @Test
+    void parse_longLine_noSoftBreak() {
+        // Long lines should not get soft breaks even if they end with punctuation
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>This is a much longer line that exceeds the threshold for short lines and ends with punctuation.\n" +
+                "This is the next line.</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // Long lines should be merged normally (no <br>)
+        // The markdown will be rendered as a single paragraph
+        assertThat(parsed.bodyMarkdown()).doesNotContain("  \n");
+    }
 }

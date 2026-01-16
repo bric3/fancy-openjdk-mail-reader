@@ -372,6 +372,10 @@ public class MailParser {
                 .reduce((a, b) -> a + "\n" + b)
                 .orElse("");
 
+        // Add soft line breaks (two trailing spaces) to short lines ending with punctuation
+        // This preserves line breaks for greetings like "Hello Gavin," and signatures like "Gavin"
+        content = addSoftBreaksToShortLines(content);
+
         // Remove excessive blank lines (more than 2 consecutive)
         content = content.replaceAll("\n{3,}", "\n\n");
 
@@ -435,6 +439,53 @@ public class MailParser {
      */
     private boolean looksLikeCode(String line) {
         return CODE_PATTERN.matcher(line).find();
+    }
+
+    // Maximum length for a "short line" that should preserve its line break
+    private static final int SHORT_LINE_MAX_LENGTH = 60;
+
+    /**
+     * Add markdown soft line breaks (two trailing spaces) to short lines ending with punctuation.
+     * <p>
+     * In markdown, consecutive lines are merged into a paragraph. This causes issues for:
+     * - Greetings: "Hello Gavin," followed by the message body
+     * - Signatures: "Wishing you a happy 2026!" followed by "Gavin"
+     * <p>
+     * By adding two trailing spaces, we create a soft break ({@code <br>}) in HTML.
+     */
+    private String addSoftBreaksToShortLines(String content) {
+        String[] lines = content.split("\n", -1);
+        StringBuilder result = new StringBuilder();
+
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
+            String nextLine = i < lines.length - 1 ? lines[i + 1] : "";
+
+            // Check if this line should have a soft break:
+            // - Short line (under threshold)
+            // - Ends with punctuation (. ! ? ,)
+            // - Next line is not blank (otherwise paragraph break is fine)
+            // - Not inside a code block (doesn't start with 4 spaces)
+            // - Not a blockquote marker line (just ">")
+            String trimmed = line.trim();
+            boolean isShortLine = trimmed.length() > 0 && trimmed.length() <= SHORT_LINE_MAX_LENGTH;
+            boolean endsWithPunctuation = trimmed.matches(".*[.!?,]$");
+            boolean nextLineNotBlank = !nextLine.isBlank();
+            boolean notCodeBlock = !line.startsWith("    ");
+            boolean notBlockquoteOnly = !trimmed.equals(">");
+
+            if (isShortLine && endsWithPunctuation && nextLineNotBlank && notCodeBlock && notBlockquoteOnly) {
+                result.append(line).append("  "); // Add two spaces for soft break
+            } else {
+                result.append(line);
+            }
+
+            if (i < lines.length - 1) {
+                result.append("\n");
+            }
+        }
+
+        return result.toString();
     }
 
     /**
