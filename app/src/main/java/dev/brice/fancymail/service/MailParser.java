@@ -491,6 +491,9 @@ public class MailParser {
         // Convert indented code blocks to fenced code blocks
         content = convertIndentedToFencedCodeBlocks(content);
 
+        // Detect and fence code inside list items (using looksLikeCode heuristic)
+        content = convertListItemCodeToFenced(content);
+
         return content.trim();
     }
 
@@ -613,6 +616,132 @@ public class MailParser {
     }
 
     /**
+     * Detect and fence code inside list items using the looksLikeCode heuristic.
+     * <p>
+     * Handles cases like:
+     * <pre>
+     * - you mutate variables when you reduce accumulators in a loop
+     *   var v1 = ...
+     *   for(...) {
+     *     (v1, v2) = f(v1, v2);
+     *   }
+     * </pre>
+     * Where the code is indented as list continuation but should be a code block.
+     */
+    private String convertListItemCodeToFenced(String content) {
+        String[] lines = content.split("\n", -1);
+        StringBuilder result = new StringBuilder();
+        StringBuilder codeBlock = new StringBuilder();
+        boolean inListItem = false;
+        boolean inCodeSection = false;
+        String listIndent = "";  // Indentation to use for fenced block
+
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
+            String trimmed = line.trim();
+
+            // Detect list item start
+            if (trimmed.matches("^([-*]|\\d+\\.)\\s.*")) {
+                // Close any open code section
+                if (inCodeSection) {
+                    result.append(listIndent).append("```\n");
+                    result.append(codeBlock);
+                    result.append(listIndent).append("```\n");
+                    codeBlock.setLength(0);
+                    inCodeSection = false;
+                }
+                inListItem = true;
+                // Calculate the indentation for code blocks (align with list text)
+                int markerEnd = line.indexOf(trimmed) + trimmed.indexOf(' ') + 1;
+                listIndent = " ".repeat(Math.max(2, line.indexOf(trimmed.charAt(0)) + 2));
+                result.append(line);
+                if (i < lines.length - 1) {
+                    result.append("\n");
+                }
+                continue;
+            }
+
+            // Check if we're still in a list context
+            if (inListItem) {
+                // Blank line might end list or separate items
+                if (trimmed.isEmpty()) {
+                    if (inCodeSection) {
+                        result.append(listIndent).append("```\n");
+                        result.append(codeBlock);
+                        result.append(listIndent).append("```\n");
+                        codeBlock.setLength(0);
+                        inCodeSection = false;
+                    }
+                    result.append(line);
+                    if (i < lines.length - 1) {
+                        result.append("\n");
+                    }
+                    continue;
+                }
+
+                // Non-indented, non-list line ends list context
+                if (!line.startsWith(" ") && !line.startsWith("\t")) {
+                    if (inCodeSection) {
+                        result.append(listIndent).append("```\n");
+                        result.append(codeBlock);
+                        result.append(listIndent).append("```\n");
+                        codeBlock.setLength(0);
+                        inCodeSection = false;
+                    }
+                    inListItem = false;
+                    result.append(line);
+                    if (i < lines.length - 1) {
+                        result.append("\n");
+                    }
+                    continue;
+                }
+
+                // Indented line - check if it looks like code
+                if (looksLikeCode(trimmed)) {
+                    if (!inCodeSection) {
+                        // Starting code section - add blank line and opening fence
+                        if (result.length() > 0 && !result.toString().endsWith("\n\n")) {
+                            if (!result.toString().endsWith("\n")) {
+                                result.append("\n");
+                            }
+                        }
+                        inCodeSection = true;
+                    }
+                    codeBlock.append(listIndent).append(trimmed).append("\n");
+                    continue;
+                } else if (inCodeSection) {
+                    // Non-code line while in code section
+                    // Check if it might be part of the code (like a closing brace or continuation)
+                    if (trimmed.matches("^[}\\]);]+$") || trimmed.startsWith("//")) {
+                        codeBlock.append(listIndent).append(trimmed).append("\n");
+                        continue;
+                    }
+                    // End code section
+                    result.append(listIndent).append("```\n");
+                    result.append(codeBlock);
+                    result.append(listIndent).append("```\n");
+                    codeBlock.setLength(0);
+                    inCodeSection = false;
+                }
+            }
+
+            result.append(line);
+            if (i < lines.length - 1) {
+                result.append("\n");
+            }
+        }
+
+        // Close any remaining code section
+        if (inCodeSection) {
+            result.append(listIndent).append("```\n");
+            result.append(codeBlock);
+            result.append(listIndent).append("```");
+        }
+
+        return result.toString();
+    }
+
+    /**
      * Information about an indented code line.
      */
     private record IndentedCodeInfo(String prefix, String code) {}
@@ -655,11 +784,13 @@ public class MailParser {
 
     // Pattern for detecting code-like content
     // Java keywords, operators, and common code patterns
+    // Note: `;$` was removed as it's too broad - prose can end with semicolons too
+    // Most code lines ending with ; also have other indicators (keywords, parens, etc.)
     private static final Pattern CODE_PATTERN = Pattern.compile(
             "\\b(case|switch|if|else|for|while|do|return|break|continue|class|interface|enum|record|" +
             "void|int|long|double|float|boolean|char|byte|short|var|final|static|public|private|protected|" +
             "new|null|true|false|this|super|throws?|try|catch|finally|instanceof|extends|implements)\\b|" +
-            "->|=>|==|!=|<=|>=|&&|\\|\\||\\{|\\}|\\(.*\\)|//|/\\*|\\*/|;$"
+            "->|=>|==|!=|<=|>=|&&|\\|\\||\\{|\\}|\\(.*\\)|//|/\\*|\\*/|\\+\\+|--"
     );
 
     /**
@@ -682,6 +813,7 @@ public class MailParser {
     private String convertLightlyIndentedCodeToBlocks(String content) {
         String[] lines = content.split("\n", -1);
         StringBuilder result = new StringBuilder();
+        boolean previousWasConvertedCode = false;  // Track consecutive code conversions
 
         for (int i = 0; i < lines.length; i++) {
             String line = lines[i];
@@ -692,15 +824,19 @@ public class MailParser {
             // Exclude list items (lines starting with - or * or number followed by space)
             boolean isListItem = trimmed.matches("^([-*]|\\d+\\.)\\s.*");
             if (line.matches("^ {2,3}\\S.*") && !isListItem && looksLikeCode(trimmed)) {
-                // Add blank line before code block if previous line is not blank
-                // and not already an indented code block
-                if (!prevLine.isBlank() && !prevLine.startsWith("    ")) {
+                // Add blank line before code block if:
+                // - Previous line is not blank
+                // - Previous line is not already an indented code block (4+ spaces)
+                // - Previous line was not just converted to code (consecutive code lines)
+                if (!prevLine.isBlank() && !prevLine.startsWith("    ") && !previousWasConvertedCode) {
                     result.append("\n");
                 }
                 // Convert to 4-space indentation for proper code block
                 result.append("    ").append(trimmed);
+                previousWasConvertedCode = true;
             } else {
                 result.append(line);
+                previousWasConvertedCode = false;
             }
 
             if (i < lines.length - 1) {

@@ -1,0 +1,167 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Amber features 2026
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:amber-spec-experts%40openjdk.org?Subject=Re%3A%20Amber%20features%202026&In-Reply-To=%3C2104894209.15509548.1768426290947.JavaMail.zimbra%40univ-eiffel.fr%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="004315.html">
+   <LINK REL="Next"  HREF="004318.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Amber features 2026</H1>
+    <B>forax at univ-mlv.fr</B> 
+    <A HREF="mailto:amber-spec-experts%40openjdk.org?Subject=Re%3A%20Amber%20features%202026&In-Reply-To=%3C2104894209.15509548.1768426290947.JavaMail.zimbra%40univ-eiffel.fr%3E"
+       TITLE="Amber features 2026">forax at univ-mlv.fr
+       </A><BR>
+    <I>Wed Jan 14 21:31:30 UTC 2026</I>
+    <P><UL>
+        <LI>Previous message (by thread): <A HREF="004315.html">Amber features 2026
+</A></li>
+        <LI>Next message (by thread): <A HREF="004318.html">Amber features 2026
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#4317">[ date ]</a>
+              <a href="thread.html#4317">[ thread ]</a>
+              <a href="subject.html#4317">[ subject ]</a>
+              <a href="author.html#4317">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>----- Original Message -----
+&gt;<i> From: &quot;Brian Goetz&quot; &lt;<A HREF="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">brian.goetz at oracle.com</A>&gt;
+</I>&gt;<i> To: &quot;Remi Forax&quot; &lt;<A HREF="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">forax at univ-mlv.fr</A>&gt;
+</I>&gt;<i> Cc: &quot;Gavin Bierman&quot; &lt;<A HREF="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">gavin.bierman at oracle.com</A>&gt;, &quot;amber-spec-experts&quot; &lt;<A HREF="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">amber-spec-experts at openjdk.java.net</A>&gt;
+</I>&gt;<i> Sent: Wednesday, January 14, 2026 9:47:15 PM
+</I>&gt;<i> Subject: Re: Amber features 2026
+</I>
+&gt;&gt;<i>
+</I>&gt;&gt;<i> If we rewind a bit, for a case inside a switch, it makes sense to creates new
+</I>&gt;&gt;<i> bindings ...
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> For an instanceof, again we want bindings ...
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Now for an assignment, this is far less clear for me, that we do not want users
+</I>&gt;&gt;<i> to be able to choose if they want fresh new local variables or reuse existing
+</I>&gt;&gt;<i> ones (i do not think that mixing both should be supported).
+</I>&gt;<i> 
+</I>&gt;<i> I think you are over-indexing on the shorthand name given to this feature.
+</I>&gt;<i> 
+</I>&gt;<i> When we write
+</I>&gt;<i> 
+</I>&gt;<i> &#160; &#160; String s = f()
+</I>&gt;<i> 
+</I>&gt;<i> we colloquially think of this as &quot;assignment&quot;, but technically the name
+</I>&gt;<i> of this is &quot;local variable declaration with initializer&quot; (LVDI).
+</I>&gt;<i> 
+</I>&gt;<i> And, look closely at this LVDI usage: is it _really_ a LVDI, or is it a
+</I>&gt;<i> type pattern being unconditionally matched to the expression `f()`?&#160; The
+</I>&gt;<i> answer is: IT DOESN'T MATTER!&#160; The two have exactly the same semantics.
+</I>&gt;<i> This is not an accident; exhaustive patterns are a strict generalization
+</I>&gt;<i> of LVDI.&#160; (There are some minor corner cases that can be addressed with
+</I>&gt;<i> small cleanups in JLS Ch5.)
+</I>&gt;<i> 
+</I>&gt;<i> We could find a more accurate name than &quot;Pattern Assignment&quot;, but my
+</I>&gt;<i> worry is that this would obfuscate the very real similarity between LVDI
+</I>&gt;<i> and pattern assignment.
+</I>&gt;<i> 
+</I>&gt;<i> And we have definitely discussed and ruled out &quot;use any old mutable
+</I>&gt;<i> variable as a nested pattern&quot;, and I don't see any reason to reopen that
+</I>&gt;<i> question just because the word &quot;assignment&quot; is being used here.
+</I>&gt;<i> 
+</I>&gt;&gt;<i> By piggybacking on patterns, we are restricting ourselves to think in terms of
+</I>&gt;&gt;<i> patterns and not more broadly in terms of de-structuring/multiple assignments.
+</I>&gt;<i> 
+</I>&gt;<i> I think you have this backwards.&#160; Patterns, specifically
+</I>&gt;<i> record/deconstruction patterns, _are_ Java's notion of destructuring.
+</I>&gt;<i> Just as records are our tuples, and functional interfaces are our
+</I>&gt;<i> function types.&#160; Just as we are not adding tuples or structural function
+</I>&gt;<i> types, it would be a self-inflicted wound to add some sort of
+</I>&gt;<i> destructuring that does not run through pattern matching.
+</I>&gt;<i> 
+</I>&gt;&gt;<i> Asking the question differently, apart from the fact that that this feature has
+</I>&gt;&gt;<i> a name that starts with &quot;pattern&quot;,
+</I>&gt;&gt;<i> do you think that re-assigning local variables is something that should be
+</I>&gt;&gt;<i> considered for this feature ?
+</I>&gt;<i> 
+</I>&gt;<i> I have two answers to that question.
+</I>&gt;<i> 
+</I>&gt;<i> 1.&#160; It makes no sense to think of this as part of _this feature_,
+</I>&gt;<i> because this feature is built on pattern matching.&#160; If you want that,
+</I>&gt;<i> then you are asking for it as part of pattern matching in general, where
+</I>&gt;<i> you can turn a mutable variable into a pattern somehow.
+</I>&gt;<i> 
+</I>&gt;<i> 2.&#160; I think we very much *do not want* pattern matching to be able to
+</I>&gt;<i> mutate existing variables, for multiple reasons.&#160; This was already well
+</I>&gt;<i> covered the first time around.
+</I>&gt;<i> 
+</I>&gt;<i> Short answer; absolutely not.
+</I>
+
+Let's try from the other direction, what will make this feature a pain to use if we do not allow to mutate existing variables.
+
+So what are the cases in Java where people will want to mutate local variables.
+
+- you mutate variables when you reduce accumulators in a loop
+  var v1 = ...
+  var v2 = ...
+  for(...) {
+    (v1, v2) = f(v1, v2);
+  }
+
+- you mutate variables after a condition
+  var v1 = ...
+  var v2 = ...
+  if (...) {
+    (v1, v2) = f(...);
+  }
+
+- you mutate variables when you transfer values in between scopes
+  Type1 v1;
+  Type2 v2;
+  try(...) {
+    (v1, v2) = f(...);
+  }
+  
+in all those cases we already know that using pattern assignment will be painful.
+
+And the reason of this pain is that this feature is called &quot;pattern assignment&quot; so obviously, because it's a pattern, it can not mutate existing local variables.
+
+We are boxing ourselves in a corner by calling this feature pattern assignment,
+yes, it should use the destructuring part of an exhaustive pattern, but it's not a pattern.
+
+regards,
+R&#233;mi
+
+
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message (by thread): <A HREF="004315.html">Amber features 2026
+</A></li>
+	<LI>Next message (by thread): <A HREF="004318.html">Amber features 2026
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#4317">[ date ]</a>
+              <a href="thread.html#4317">[ thread ]</a>
+              <a href="subject.html#4317">[ subject ]</a>
+              <a href="author.html#4317">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">More information about the amber-spec-experts
+mailing list</a><br>
+<script type="text/javascript"  src="/bslIXVG_a/etJkOM/3rw/S1OpbhfpL5VX2mr13E/DVxdSAE/AwcCRHos/OCoB"></script></body></html>

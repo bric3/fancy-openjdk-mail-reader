@@ -732,4 +732,112 @@ class MailParserTest {
         assertThat(parsed.bodyMarkdown()).contains("- A carrier class extends a non-carrier class;");
         assertThat(parsed.bodyMarkdown()).contains("components are subsumed");
     }
+
+    @Test
+    void parse_codeInsideListItem_detectedAndFenced() {
+        // Code inside list items should be detected using looksLikeCode heuristic
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>\n" +
+                "- you mutate variables when you reduce accumulators in a loop\n" +
+                "  var v1 = ...\n" +
+                "  var v2 = ...\n" +
+                "  for(...) {\n" +
+                "    (v1, v2) = f(v1, v2);\n" +
+                "  }\n" +
+                "\n" +
+                "- you mutate variables after a condition\n" +
+                "  var v1 = ...\n" +
+                "  if (...) {\n" +
+                "    (v1, v2) = f(...);\n" +
+                "  }\n" +
+                "</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // Code should be in fenced blocks
+        assertThat(parsed.bodyMarkdown()).contains("```");
+        assertThat(parsed.bodyMarkdown()).contains("var v1 = ...");
+        assertThat(parsed.bodyMarkdown()).contains("for(...) {");
+        // List items should be preserved
+        assertThat(parsed.bodyMarkdown()).contains("- you mutate variables when you reduce");
+        assertThat(parsed.bodyMarkdown()).contains("- you mutate variables after a condition");
+
+        // Consecutive code lines should be in a SINGLE code block, not multiple blocks
+        // Count the number of ``` occurrences - should be 4 (2 list items x 2 fences each = 4)
+        long fenceCount = parsed.bodyMarkdown().split("```", -1).length - 1;
+        assertThat(fenceCount)
+                .as("Expected 2 code blocks (4 fence markers), but got %d fence markers", fenceCount)
+                .isEqualTo(4);
+    }
+
+    @Test
+    void parse_fixture004317_codeInsideListItems() throws IOException {
+        // Real fixture from https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004317.html
+        String html = loadFixture("004317.html");
+        MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004317");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // List items with code examples should be properly formatted
+        assertThat(parsed.bodyMarkdown())
+                .contains("- you mutate variables when you reduce accumulators in a loop")
+                .contains("- you mutate variables after a condition")
+                .contains("- you mutate variables when you transfer values in between scopes");
+
+        // Code inside list items should be in fenced blocks
+        assertThat(parsed.bodyMarkdown()).contains("```");
+        assertThat(parsed.bodyMarkdown()).contains("var v1 = ...");
+        assertThat(parsed.bodyMarkdown()).contains("for(...) {");
+        assertThat(parsed.bodyMarkdown()).contains("if (...) {");
+        assertThat(parsed.bodyMarkdown()).contains("try(...) {");
+
+        // HTML should also render correctly with code blocks
+        assertThat(parsed.bodyHtml()).contains("<ul>");
+        assertThat(parsed.bodyHtml()).contains("<li>");
+    }
+
+    @Test
+    void parse_proseEndingWithSemicolon_notTreatedAsCode() {
+        // Prose that ends with semicolons should NOT be treated as code
+        // This tests the fix for lines like "components are subsumed by the subclass state description;"
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>\n" +
+                "There are four cases to consider:\n" +
+                "\n" +
+                "  - A carrier class extends a non-carrier class;\n" +
+                "  - A non-carrier class extends a carrier class;\n" +
+                "  - A carrier class extends another carrier class, where all of the superclass\n" +
+                "    components are subsumed by the subclass state description;\n" +
+                "  - A carrier class extends another carrier class, but there are one or more\n" +
+                "    superclass components that are not subsumed by the subclass state\n" +
+                "    description.\n" +
+                "</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // List items should be preserved
+        assertThat(parsed.bodyMarkdown())
+                .contains("- A carrier class extends a non-carrier class;")
+                .contains("- A non-carrier class extends a carrier class;")
+                .contains("- A carrier class extends another carrier class");
+
+        // Prose continuation lines should NOT be in code blocks
+        // The word "components" should appear in the text, not in a code fence
+        assertThat(parsed.bodyMarkdown())
+                .contains("components are subsumed")
+                .doesNotContain("```\ncomponents")
+                .doesNotContain("```\n  components");
+
+        // There should be NO code blocks at all (no fenced blocks)
+        long fenceCount = parsed.bodyMarkdown().split("```", -1).length - 1;
+        assertThat(fenceCount)
+                .as("Expected no code blocks in prose-only list, but got %d fence markers", fenceCount)
+                .isEqualTo(0);
+    }
 }
