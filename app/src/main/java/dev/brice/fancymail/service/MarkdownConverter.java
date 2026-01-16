@@ -9,11 +9,14 @@
  */
 package dev.brice.fancymail.service;
 
+import com.vladsch.flexmark.ext.typographic.TypographicExtension;
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.html2md.converter.FlexmarkHtmlConverter;
 import com.vladsch.flexmark.parser.Parser;
 import com.vladsch.flexmark.util.ast.Node;
 import com.vladsch.flexmark.util.data.MutableDataSet;
+
+import java.util.List;
 import jakarta.inject.Singleton;
 import org.jsoup.nodes.Element;
 import org.slf4j.Logger;
@@ -33,7 +36,10 @@ public class MarkdownConverter {
 
     public MarkdownConverter() {
         MutableDataSet options = new MutableDataSet();
-        // Configure Flexmark options for better conversion
+        // Enable typographic extension for smart quotes and dashes
+        // Converts " -- " to em-dash (—), "..." to ellipsis (…)
+        options.set(Parser.EXTENSIONS, List.of(TypographicExtension.create()));
+
         this.htmlToMdConverter = FlexmarkHtmlConverter.builder(options).build();
         this.mdParser = Parser.builder(options).build();
         this.mdToHtmlRenderer = HtmlRenderer.builder(options).build();
