@@ -466,6 +466,11 @@ public class MailParser {
         // be merged into the paragraph above
         content = convertLightlyIndentedCodeToBlocks(content);
 
+        // Fix orphan continuation lines from email wrapping
+        // When email wrapping breaks a line mid-code-block, the continuation starts at column 0,
+        // which prematurely terminates the code block. Re-indent single orphan lines.
+        content = fixOrphanContinuationLines(content);
+
         // Trim trailing whitespace from each line but preserve line breaks
         content = content.lines()
                 .map(String::stripTrailing)
@@ -539,6 +544,84 @@ public class MailParser {
      */
     private boolean looksLikeCode(String line) {
         return CODE_PATTERN.matcher(line).find();
+    }
+
+    // Pattern to extract leading indentation (spaces or blockquote prefix "> " followed by spaces)
+    private static final Pattern INDENT_PATTERN = Pattern.compile("^((?:> ?)?[ ]+)");
+
+    /**
+     * Fix orphan continuation lines caused by email line wrapping.
+     * <p>
+     * When email clients wrap long lines in code blocks, the continuation often starts
+     * at column 0, which prematurely terminates the markdown code block. For example:
+     * <pre>
+     *     throw new IllegalArgumentException("denominator cannot
+     * be zero");
+     * </pre>
+     * becomes:
+     * <pre>
+     *     throw new IllegalArgumentException("denominator cannot be zero");
+     * </pre>
+     * <p>
+     * This method detects such orphan lines and joins them with the previous line.
+     * It only fixes SINGLE orphan lines (where the next line resumes normal indentation
+     * or is blank), to avoid incorrectly modifying intentionally unindented text.
+     * <p>
+     * Also handles blockquotes (lines starting with "> " followed by indentation).
+     */
+    private String fixOrphanContinuationLines(String content) {
+        String[] lines = content.split("\n", -1);
+        StringBuilder result = new StringBuilder();
+
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
+            String prevLine = i > 0 ? lines[i - 1] : "";
+            String nextLine = i < lines.length - 1 ? lines[i + 1] : "";
+
+            // Check if this is an orphan continuation line:
+            // 1. Current line starts at column 0 (no leading whitespace, not a blockquote)
+            // 2. Previous line was indented (code block or blockquote with code)
+            // 3. Current line is not blank
+            // 4. Next line either resumes indentation or is blank (single orphan)
+            boolean isOrphanLine = false;
+
+            if (!line.isEmpty() && !Character.isWhitespace(line.charAt(0)) && !line.startsWith(">")) {
+                Matcher prevIndentMatcher = INDENT_PATTERN.matcher(prevLine);
+                if (prevIndentMatcher.find()) {
+                    String prevIndent = prevIndentMatcher.group(1);
+                    // Check if it's a code block indent (4+ spaces, or blockquote + 4+ spaces for code in quotes)
+                    int spaceCount = prevIndent.length() - prevIndent.replace(" ", "").length();
+
+                    if (spaceCount >= 4) {
+                        // Check next line: should resume indentation or be blank
+                        boolean nextLineResumes = nextLine.isBlank() ||
+                                INDENT_PATTERN.matcher(nextLine).find() ||
+                                nextLine.startsWith("```");
+
+                        if (nextLineResumes) {
+                            isOrphanLine = true;
+                        }
+                    }
+                }
+            }
+
+            if (isOrphanLine) {
+                // Join with previous line: remove trailing newline and add space
+                if (result.length() > 0 && result.charAt(result.length() - 1) == '\n') {
+                    result.setLength(result.length() - 1);
+                    result.append(" ");
+                }
+                result.append(line);
+            } else {
+                result.append(line);
+            }
+
+            if (i < lines.length - 1) {
+                result.append("\n");
+            }
+        }
+
+        return result.toString();
     }
 
     // Maximum length for a "short line" that should preserve its line break
