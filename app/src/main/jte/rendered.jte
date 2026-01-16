@@ -40,6 +40,9 @@
             --code-border: #e1e4e8;
             --inline-code-bg: #f0f0f0;
             --blockquote-border: #9ca3af;
+            --blockquote-bg-1: #f8f9fa;
+            --blockquote-bg-2: #f0f1f3;
+            --blockquote-bg-3: #e8e9eb;
             --action-bg: #f0f0f0;
             --action-hover: #e0e0e0;
             --disabled-color: #999;
@@ -63,6 +66,9 @@
                 --code-border: #3a3a4a;
                 --inline-code-bg: #3a3a4a;
                 --blockquote-border: #6b7280;
+                --blockquote-bg-1: #2a2a3a;
+                --blockquote-bg-2: #323242;
+                --blockquote-bg-3: #3a3a4a;
                 --action-bg: #2a2a3a;
                 --action-hover: #3a3a4a;
                 --disabled-color: #666;
@@ -193,8 +199,15 @@
             border-left: 4px solid var(--blockquote-border);
             margin: 1em 0;
             padding: 0.5em 1em;
-            background: var(--card-bg);
+            background: var(--blockquote-bg-1);
             color: var(--text-secondary);
+        }
+        .content blockquote blockquote {
+            background: var(--blockquote-bg-2);
+            margin: 0.5em 0;
+        }
+        .content blockquote blockquote blockquote {
+            background: var(--blockquote-bg-3);
         }
         .footer {
             margin-top: 40px;
