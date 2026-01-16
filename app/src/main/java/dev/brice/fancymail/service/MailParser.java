@@ -600,16 +600,22 @@ public class MailParser {
                 // Add code line with prefix but without the code indentation
                 codeBlock.append(formatBlockquotePrefix(codeBlockPrefix)).append(codeInfo.code).append("\n");
             } else {
-                // Check if this is a blank line within a blockquote code block
-                // A line like "> > >" (just the prefix) should continue the code block
-                // if the next code line has the same prefix
+                // Check if this is a blank line within a code block
+                // For blockquotes: a line like "> > >" (just the prefix) should continue the code block
+                // For regular code: a blank/whitespace-only line should continue if more code follows
                 boolean isBlankBlockquoteLine = inIndentedCodeBlock &&
                         !codeBlockPrefix.isEmpty() &&
                         isBlankBlockquoteLineWithPrefix(line, codeBlockPrefix);
+                boolean isBlankLineInRegularCode = inIndentedCodeBlock &&
+                        codeBlockPrefix.isEmpty() &&
+                        trimmed.isEmpty();
 
                 if (isBlankBlockquoteLine && hasMoreCodeWithPrefix(lines, i + 1, codeBlockPrefix)) {
                     // Include blank line in code block
                     codeBlock.append(formatBlockquotePrefix(codeBlockPrefix)).append("\n");
+                } else if (isBlankLineInRegularCode && hasMoreIndentedCode(lines, i + 1)) {
+                    // Include blank line in regular code block
+                    codeBlock.append("\n");
                 } else if (inIndentedCodeBlock) {
                     // Ending code block
                     result.append(codeBlock);
@@ -877,6 +883,23 @@ public class MailParser {
             }
             // Non-blank, non-code line - no more code coming
             return false;
+        }
+        return false;
+    }
+
+    /**
+     * Check if there's more indented code (4+ spaces) in upcoming lines.
+     * Used for regular (non-blockquote) code blocks.
+     */
+    private boolean hasMoreIndentedCode(String[] lines, int startIndex) {
+        for (int i = startIndex; i < lines.length; i++) {
+            String line = lines[i];
+            // Skip blank/whitespace-only lines
+            if (line.trim().isEmpty()) {
+                continue;
+            }
+            // Check if this line is indented code (4+ spaces)
+            return line.startsWith("    ");
         }
         return false;
     }
