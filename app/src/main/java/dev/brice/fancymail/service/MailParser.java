@@ -366,7 +366,7 @@ public class MailParser {
      * This is a basic conversion for display purposes.
      */
     private String markdownToSimpleHtml(String markdown) {
-        // Use the markdown converter's HTML output
-        return markdownConverter.toMarkdown("<pre>" + markdown + "</pre>");
+        // Use the markdown converter to convert markdown to HTML
+        return markdownConverter.toHtml(markdown);
     }
 }

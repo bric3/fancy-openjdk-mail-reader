@@ -9,7 +9,10 @@
  */
 package dev.brice.fancymail.service;
 
+import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.html2md.converter.FlexmarkHtmlConverter;
+import com.vladsch.flexmark.parser.Parser;
+import com.vladsch.flexmark.util.ast.Node;
 import com.vladsch.flexmark.util.data.MutableDataSet;
 import jakarta.inject.Singleton;
 import org.jsoup.nodes.Element;
@@ -17,19 +20,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Service to convert HTML content to Markdown using Flexmark.
+ * Service to convert between HTML and Markdown using Flexmark.
  */
 @Singleton
 public class MarkdownConverter {
 
     private static final Logger LOG = LoggerFactory.getLogger(MarkdownConverter.class);
 
-    private final FlexmarkHtmlConverter converter;
+    private final FlexmarkHtmlConverter htmlToMdConverter;
+    private final Parser mdParser;
+    private final HtmlRenderer mdToHtmlRenderer;
 
     public MarkdownConverter() {
         MutableDataSet options = new MutableDataSet();
         // Configure Flexmark options for better conversion
-        this.converter = FlexmarkHtmlConverter.builder(options).build();
+        this.htmlToMdConverter = FlexmarkHtmlConverter.builder(options).build();
+        this.mdParser = Parser.builder(options).build();
+        this.mdToHtmlRenderer = HtmlRenderer.builder(options).build();
     }
 
     /**
@@ -40,7 +47,7 @@ public class MarkdownConverter {
      */
     public String toMarkdown(String html) {
         LOG.debug("Converting HTML to Markdown");
-        return converter.convert(html);
+        return htmlToMdConverter.convert(html);
     }
 
     /**
@@ -51,6 +58,18 @@ public class MarkdownConverter {
      */
     public String toMarkdown(Element element) {
         return toMarkdown(element.html());
+    }
+
+    /**
+     * Convert Markdown string to HTML.
+     *
+     * @param markdown the Markdown content
+     * @return the HTML representation
+     */
+    public String toHtml(String markdown) {
+        LOG.debug("Converting Markdown to HTML");
+        Node document = mdParser.parse(markdown);
+        return mdToHtmlRenderer.render(document);
     }
 
     /**
