@@ -1,0 +1,20 @@
+micronaut:
+  application:
+    name: fancy-mail
+  server:
+    port: 8080
+
+  http:
+    client:
+      read-timeout: 30s
+      connect-timeout: 10s
+
+  views:
+    jte:
+      dynamic: true
+
+# Cache configuration
+fancymail:
+  cache:
+    max-size: 1000
+    expire-after-write: PT1H  # 1 hour

@@ -1,0 +1,161 @@
+# Fancy Mail - OpenJDK Mailing List Beautifier
+
+A Micronaut application that fetches and beautifies emails from OpenJDK mailing lists, converting them to clean, readable markdown or rendered HTML.
+
+## Features
+
+- **CLI Mode**: Convert mailing list URLs to markdown files
+- **Server Mode**: Web UI for browsing beautified emails
+- **Link Rewriting**: Links to other mailing list emails automatically point to rendered versions
+- **In-Memory Caching**: Fetched emails are cached to reduce load on the mailing list server
+- **Code Highlighting**: Syntax highlighting for Java code blocks
+
+## Requirements
+
+- Java 21+
+- Gradle 8.x (included via wrapper)
+
+## Quick Start
+
+### Server Mode (Default)
+
+```bash
+./gradlew run
+```
+
+This starts the server at `http://localhost:8080` and opens your browser automatically.
+
+**Options:**
+- `--port <port>`: Use a custom port (default: 8080)
+- `--no-open`: Don't open browser automatically
+
+```bash
+./gradlew run --args="--port 9000 --no-open"
+```
+
+### CLI Mode
+
+Convert a mailing list URL to markdown:
+
+```bash
+# Print to stdout
+./gradlew run --args="--url https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004307.html"
+
+# Save to file
+./gradlew run --args="--url https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004307.html --output email.md"
+```
+
+### Help
+
+```bash
+./gradlew run --args="--help"
+```
+
+## Web UI
+
+### Home Page (`/`)
+
+Paste an OpenJDK mailing list URL to beautify it:
+
+```
+https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004307.html
+```
+
+### Rendered View (`/rendered/{list}/{year-month}/{id}.html`)
+
+Direct URL access to rendered emails. The URL pattern mirrors the original mailing list URL:
+
+- Original: `https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004307.html`
+- Rendered: `http://localhost:8080/rendered/amber-spec-experts/2026-January/004307.html`
+
+### Markdown Export (`/markdown/{list}/{year-month}/{id}.md`)
+
+Get the raw markdown for any email:
+
+```
+http://localhost:8080/markdown/amber-spec-experts/2026-January/004307.md
+```
+
+## Project Structure
+
+```
+app/src/main/java/dev/brice/fancymail/
+├── Application.java              # Main entry point
+├── FancyMailCommand.java         # CLI command (Picocli)
+├── controller/
+│   └── MailController.java       # Web endpoints
+├── service/
+│   ├── MailFetcher.java          # HTTP client for fetching emails
+│   ├── MailParser.java           # HTML parsing with Jsoup
+│   ├── MarkdownConverter.java    # HTML to Markdown conversion
+│   ├── LinkRewriter.java         # URL rewriting for proxy
+│   └── MailService.java          # Service orchestration
+├── cache/
+│   └── MailCache.java            # Caffeine in-memory cache
+└── model/
+    ├── MailPath.java             # URL/path parsing
+    └── ParsedMail.java           # Parsed email record
+
+app/src/main/jte/
+├── index.jte                     # Home page template
+└── rendered.jte                  # Rendered email template
+
+app/src/main/resources/
+├── application.yml               # Micronaut configuration
+└── logback.xml                   # Logging configuration
+```
+
+## Configuration
+
+Configuration is in `app/src/main/resources/application.yml`:
+
+```yaml
+micronaut:
+  server:
+    port: 8080
+
+fancymail:
+  cache:
+    max-size: 1000           # Maximum cached emails
+    expire-after-write: PT1H # Cache TTL (1 hour)
+```
+
+## Technology Stack
+
+- **Framework**: [Micronaut 4.x](https://micronaut.io/)
+- **CLI**: [Picocli](https://picocli.info/)
+- **HTML Parsing**: [Jsoup](https://jsoup.org/)
+- **Markdown Conversion**: [Flexmark](https://github.com/vsch/flexmark-java)
+- **Template Engine**: [JTE](https://jte.gg/)
+- **Caching**: [Caffeine](https://github.com/ben-manes/caffeine)
+
+## Building
+
+```bash
+# Build
+./gradlew build
+
+# Run tests
+./gradlew test
+
+# Create distribution
+./gradlew distZip
+```
+
+## Supported Mailing Lists
+
+Any OpenJDK Pipermail mailing list is supported, including:
+
+- `amber-dev`
+- `amber-spec-experts`
+- `core-libs-dev`
+- `compiler-dev`
+- `hotspot-dev`
+- `jdk-dev`
+- `panama-dev`
+- `loom-dev`
+- `valhalla-dev`
+
+## License
+
+MIT

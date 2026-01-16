@@ -1,0 +1,44 @@
+[versions]
+micronaut = "4.6.1"
+micronaut-platform = "4.6.1"
+picocli = "4.7.6"
+jsoup = "1.18.3"
+flexmark = "0.64.8"
+caffeine = "3.1.8"
+jte = "3.1.15"
+logback = "1.5.15"
+
+[libraries]
+# Micronaut
+micronaut-http-client = { module = "io.micronaut:micronaut-http-client" }
+micronaut-http-server-netty = { module = "io.micronaut:micronaut-http-server-netty" }
+micronaut-runtime = { module = "io.micronaut:micronaut-runtime" }
+micronaut-serde-jackson = { module = "io.micronaut.serde:micronaut-serde-jackson" }
+micronaut-views-jte = { module = "io.micronaut.views:micronaut-views-jte" }
+
+# Picocli for CLI
+picocli = { module = "info.picocli:picocli", version.ref = "picocli" }
+micronaut-picocli = { module = "io.micronaut.picocli:micronaut-picocli" }
+
+# HTML parsing and Markdown
+jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
+flexmark = { module = "com.vladsch.flexmark:flexmark-all", version.ref = "flexmark" }
+
+# Caching
+caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
+
+# JTE templates
+jte = { module = "gg.jte:jte", version.ref = "jte" }
+
+# Logging
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+
+# Testing
+micronaut-test-junit5 = { module = "io.micronaut.test:micronaut-test-junit5" }
+junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api" }
+junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine" }
+
+[plugins]
+micronaut-application = { id = "io.micronaut.application", version.ref = "micronaut" }
+micronaut-aot = { id = "io.micronaut.aot", version.ref = "micronaut" }
+jte = { id = "gg.jte.gradle", version.ref = "jte" }

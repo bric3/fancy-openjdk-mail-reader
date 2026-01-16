@@ -1,0 +1,926 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Data Oriented Programming, Beyond Records
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:amber-spec-experts%40openjdk.org?Subject=Re%3A%20Data%20Oriented%20Programming%2C%20Beyond%20Records&In-Reply-To=%3Ca9b4d85d-29e9-4442-adb5-13e0f30637f3%40oracle.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="004309.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Data Oriented Programming, Beyond Records</H1>
+    <B>Brian Goetz</B> 
+    <A HREF="mailto:amber-spec-experts%40openjdk.org?Subject=Re%3A%20Data%20Oriented%20Programming%2C%20Beyond%20Records&In-Reply-To=%3Ca9b4d85d-29e9-4442-adb5-13e0f30637f3%40oracle.com%3E"
+       TITLE="Data Oriented Programming, Beyond Records">brian.goetz at oracle.com
+       </A><BR>
+    <I>Tue Jan 13 21:52:47 UTC 2026</I>
+    <P><UL>
+        <LI>Previous message (by thread): <A HREF="004309.html">Amber features 2026
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#4307">[ date ]</a>
+              <a href="thread.html#4307">[ thread ]</a>
+              <a href="subject.html#4307">[ subject ]</a>
+              <a href="author.html#4307">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Here's a snapshot of where my head is at with respect to extending the 
+record goodies (including pattern matching) to a broader range of 
+classes, deconstructors for classes and interfaces, and compatible 
+evolution of records. Hopefully this will unblock quite a few things.
+
+As usual, let's discuss concepts and directions rather than syntax.
+
+
+
+# Data-oriented Programming for Java: Beyond records
+
+Everyone loves records; they allow us to create shallowly immutable data 
+holder
+classes -- which we can think of as &quot;nominal tuples&quot; -- derived from a 
+concise
+state description, and to destructure records through pattern matching.&#160; But
+records have strict constraints, and not all data holder classes fit 
+into the
+restrictions of records.&#160; Maybe they have some mutable state, or derived or
+cached state that is not part of the state description, or their 
+representation
+and their API do not match up exactly, or they need to break up their state
+across a hierarchy.&#160; In these classes, even though they may also be &#8220;data
+holders&#8221;, the user experience is like falling off a cliff.&#160; Even a small
+deviation from the record ideal means one has to go back to a blank 
+slate and
+write explicit constructor declarations, accessor method declarations, and
+Object method implementations -- and give up on destructuring through 
+pattern
+matching.
+
+Since the start of the design process for records, we&#8217;ve kept in mind 
+the goal
+of enabling a broader range of classes to gain access to the &quot;record 
+goodies&quot;:
+reduced declaration burden, participating in destructuring, and soon,
+[reconstruction](<A HREF="https://openjdk.org/jeps/468">https://openjdk.org/jeps/468</A>). During the design of 
+records, we
+also explored a number of weaker semantic models that would allow for 
+greater
+flexibility. While at the time they all failed to live up to the goals _for
+records_, there is a weaker set of semantic constraints we can impose that
+allows for more flexibility and still enables the features we want, 
+along with
+some degree of syntactic concision that is commensurate with the 
+distance from
+the record-ideal, without fall-off-the-cliff behaviors.
+
+Records, sealed classes, and destructuring with record patterns 
+constitute the
+first feature arc of &quot;data-oriented programming&quot; for Java.&#160; After 
+considering
+numerous design ideas, we're now ready to move forward with the next &quot;data
+oriented programming&quot; feature arc: _carrier classes_ (and interfaces.)
+
+## Beyond record patterns
+
+Record patterns allow a record instance to be destructured into its 
+components.
+Record patterns can be used in `instanceof` and `switch`, and when a record
+pattern is also exhaustive, will be usable in the upcoming [_pattern 
+assignment
+statement_](<A HREF="https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004306.html">https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004306.html</A>) 
+feature.
+
+In exploring the question &quot;how will classes be able to participate in 
+the same
+sort of destructuring as records&quot;, we had initially focused on a new form of
+declaration in a class -- a &quot;deconstructor&quot; -- that operated as a 
+constructor in
+reverse. Just as a constructor takes component values and produces an 
+aggregate
+instance, a deconstructor would take an aggregate instance and recover its
+component values.
+
+But as this exploration played out, the more interesting question turned 
+out to
+be: which classes are suitable for destructuring in the first place? And the
+answer to that question led us to a different approach for expressing
+deconstruction.&#160; The classes that are suitable for destructuring are 
+those that,
+like records, are little more than carriers for a specific tuple of 
+data. This
+is not just a thing that a class _has_, like a constructor or method, but
+something a class _is_.&#160; And as such, it makes more sense to describe
+deconstruction as a top-level property of a class.&#160; This, in turn, leads 
+to a
+number of simplifications.
+
+## The power of the state description
+
+Records are a semantic feature; they are only incidentally concise.&#160; But 
+they
+_are_ concise; when we declare a record
+
+ &#160; &#160; record Point(int x, int y) { ... }
+
+we automatically get a sensible API (canonical constructor, deconstruction
+pattern, accessor methods for each component) and implementation (fields,
+constructor, accessor methods, Object methods.)&#160; We can explicitly 
+specify most
+of these (except the fields) if we like, but most of the time we don't 
+have to,
+because the default is exactly what we want.
+
+A record is a shallowly-immutable, final class whose API and 
+representation are
+_completely defined_ by its _state description_.&#160; (The slogan for records is
+&quot;the state, the whole state, and nothing but the state.&quot;)&#160; The state 
+description
+is the ordered list of _record components_ declared in the record's 
+header.&#160; A
+component is more than a mere field or accessor method; it is an API 
+element on
+its own, describing a state element that instances of the class have.
+
+The state description of a record has several desirable properties:
+
+ &#160;- The components in the order specified, are the _canonical_ 
+description of the
+ &#160; &#160;record's state.
+ &#160;- The components are the _complete_ description of the record&#8217;s state.
+ &#160;- The components are _nominal_; their names are a committed part of the
+ &#160; &#160;record's API.
+
+Records derive their benefits from making two commitments:
+
+ &#160;- The _external_ commitment that the data-access API of a record 
+(constructor,
+ &#160; &#160;deconstruction pattern, and component accessor methods) is defined 
+by the
+ &#160; &#160;state description.
+ &#160;- The _internal_ commitments that the _representation_ of the record (its
+ &#160; &#160;fields) is also completely defined by the state description.
+
+These semantic properties are what enable us to derive almost everything 
+about
+records.&#160; We can derive the API of the canonical constructor because the 
+state
+description is canonical.&#160; We can derive the API for the component accessor
+methods because the state description is nominal.&#160; And we can derive a
+deconstruction pattern from the accessor methods because the state 
+description
+is complete (along with sensible implementations for the state-related 
+`Object`
+methods.)
+
+The internal commitment that the state description is also the 
+representation
+allows us to completely derive the rest of the implementation. Records get a
+(private, final) field for each component, but more importantly, there is a
+clear mapping between these fields and their corresponding components, 
+which is
+what allows us to derive the canonical constructor and accessor method
+implementations.
+
+Records can additionally declare a _compact constructor_ that allows us 
+to elide
+the boilerplate aspects of record constructors -- the argument list and 
+field
+assignments -- and just specify the code that is _not_ mechanically 
+derivable.
+This is more concise, less error-prone, and easier to read:
+
+ &#160; &#160; record Rational(int num, int denom) {
+ &#160; &#160; &#160; &#160; Rational {
+ &#160; &#160; &#160; &#160; &#160; &#160; if (denom == 0)
+ &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; throw new IllegalArgumentException(&quot;denominator cannot 
+be zero&quot;);
+ &#160; &#160; &#160; &#160; }
+ &#160; &#160; }
+
+is shorthand for the more explicit
+
+ &#160; &#160; record Rational(int num, int denom) {
+ &#160; &#160; &#160; &#160; Rational(int num, int denom) {
+ &#160; &#160; &#160; &#160; &#160; &#160; if (denom == 0)
+ &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; throw new IllegalArgumentException(&quot;denominator cannot 
+be zero&quot;);
+ &#160; &#160; &#160; &#160; &#160; &#160; this.num = num;
+ &#160; &#160; &#160; &#160; &#160; &#160; this.denom = denom;
+ &#160; &#160; &#160; &#160; }
+ &#160; &#160; }
+
+While compact constructors are pleasantly concise, the more important 
+benefit is
+that by eliminating the mechanically derivable code, the &quot;more 
+interesting&quot; code
+comes to the fore.
+
+Looking ahead, the state description is a gift that keeps on giving.&#160; These
+semantic commitments are enablers for a number of potential future 
+language and
+library features for managing object lifecycle, such as:
+
+ &#160;- [Reconstruction](<A HREF="https://openjdk.org/jeps/468">https://openjdk.org/jeps/468</A>) of record instances, 
+allowing
+ &#160; &#160;the appearance of controlled mutation of record state.
+ &#160;- Automatic marshalling and unmarshalling of record instances.
+ &#160;- Instantiating or destructuring record instances identifying components
+ &#160; &#160;nominally rather than positionally.
+
+### Reconstruction
+
+JEP 468 proposes a mechanism by which a new record instance can be 
+derived from
+an existing one using syntax that is evocative of direct mutation, via a 
+`with`
+expression:
+
+ &#160; &#160; record Complex(double re, double im) { }
+ &#160; &#160; Complex c = ...
+ &#160; &#160; Complex cConjugate = c with { im = -im; };
+
+The block on the right side of `with` can contain any Java statements, 
+not just
+assignments.&#160; It is enhanced with mutable variables (_component 
+variables_) for
+each component of the record, initialized to the value of that component 
+in the
+record instance on the left, the block is executed, and a new record 
+instance is
+created whose component values are the ending values of the component 
+variables.
+
+A reconstruction expression implicitly destructures the record instance 
+using
+the canonical deconstruction pattern, executes the block in a scope enhanced
+with the component variables, and then creates a new record using the 
+canonical
+constructor.&#160; Invariant checking is centralized in the canonical 
+constructor, so
+if the new state is not valid, the reconstruction will fail.&#160; JEP 468 
+has been
+&quot;on hold&quot; for a while, primarily because we were waiting for sufficient
+confidence that there was a path to extending it to suitable classes before
+committing to it for records.&#160; The ideal path would be for those classes 
+to also
+support a notion of canonical constructor and deconstruction pattern.
+
+Careful readers will note a similarity between the transformation block of a
+`with` expression and the body of a compact constructor.&#160; In both cases, the
+block is &quot;preloaded&quot; with a set of component variables, initialized to 
+suitable
+starting values, the block can mutate those variables as desired, and upon
+normal completion of the block, those variables are passed to a canonical
+constructor to produce the final result.&#160; The main difference is where the
+starting values come from; for a compact constructor, it is from the 
+constructor
+parameters, and for a reconstruction expression, it is from the canonical
+deconstruction pattern of the source record to the left of `with`.
+
+### Breaking down the cliff
+
+Records make a strong semantic commitment to derive both their API and
+representation from the state description, and in return get a lot of 
+help from
+the language.&#160; We can now turn our attention to smoothing out &quot;the cliff&quot; --
+identifying weaker semantic commitments that classes can make that would 
+still
+allow classes to get _some_ help from the language.&#160; And ideally, the 
+amount of
+help you give up would be proportional to the degree of deviation from the
+record ideal.
+
+With records, we got a lot of mileage out of having a complete, canonical,
+nominal state description.&#160; Where the record contract is sometimes too
+constraining is the _implementation_ contract that the representation aligns
+exactly with the state description, that the class is final, that the 
+fields are
+final, and that the class may not extend anything but `Record`.
+
+Our path here takes one step back and one step forward: keeping the external
+commitment to the state description, but dropping the internal 
+commitment that
+the state description _is_ the representation -- and then _adding back_ 
+a simple
+mechanism for mapping fields representing components back to their 
+corresponding
+components, where practical.&#160; (With records, because we derive the
+representation from the state description, this mapping can be safely 
+inferred.)
+
+As a thought experiment, imagine a class that makes the external 
+commitment to a
+state description -- that the state description is a complete, canonical,
+nominal description of its state -- but is on its own to provide its
+representation.&#160; What can we do for such a class?&#160; Quite a bit, 
+actually.&#160; For
+all the same reasons we can for records, we can derive the API 
+requirement for a
+canonical constructor and component accessor methods.&#160; From there, we 
+can derive
+both the requirement for a canonical deconstruction pattern, and also the
+implementation of the deconstruction pattern (as it is implemented in 
+terms of
+the accessor methods). And since the state description is complete, we can
+further derive sensible default implementations of the Object methods 
+`equals`,
+`hashCode`, and `toString` in terms of the accessor methods as well. And 
+given
+that there is a canonical constructor and deconstruction pattern, it can 
+also
+participate in reconstruction.&#160; The author would just have to provide the
+fields, accessor methods, and canonical constructor.&#160; This is good 
+progress, but
+we'd like to do better.
+
+What enables us to derive the rest of the implementation for records 
+(fields,
+constructor, accessor methods, and Object methods) is the knowledge of 
+how the
+representation maps to the state description.&#160; Records commit to their state
+description _being_ the representation, so is is a short leap from there 
+to a
+complete implementation.
+
+To make this more concrete, let's look at a typical &quot;almost record&quot; class, a
+carrier for the state description `(int x, int y, Optional&lt;String&gt; s)` 
+but which
+has made the representation choice to internally store `s` as a nullable
+`String`.
+
+```
+class AlmostRecord {
+ &#160; &#160; private final int x;
+ &#160; &#160; private final int y;
+ &#160; &#160; private final String s;&#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160;// *
+
+ &#160; &#160; public AlmostRecord(int x, int y, Optional&lt;String&gt; s) {
+ &#160; &#160; &#160; &#160; this.x = x;
+ &#160; &#160; &#160; &#160; this.y = y;
+ &#160; &#160; &#160; &#160; this.s = s.orElse(null);&#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; // *
+ &#160; &#160; }
+
+ &#160; &#160; public int x() { return x; }
+ &#160; &#160; public int y() { return y; }
+ &#160; &#160; public Optional&lt;String&gt; s() {
+ &#160; &#160; &#160; &#160; return Optional.ofNullable(s);&#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; // *
+ &#160; &#160; }
+
+ &#160; &#160; public boolean equals(Object other) { ... }&#160; &#160; &#160;// derived from 
+x(), y(), s()
+ &#160; &#160; public int hashCode() { ... }&#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160;//&#160; &#160; &quot;
+ &#160; &#160; public String toString() { ... }&#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; //&#160; &#160; &quot;
+}
+```
+
+The main differences between this class and the expansion of its record 
+analogue
+are the lines marked with a `*`; these are the ones that deal with the 
+disparity
+between the state description and the actual representation.&#160; It would 
+be nice
+if the author of this class _only_ had to write the code that was 
+different from
+what we could derive for a record; not only would this be pleasantly 
+concise,
+but it would mean that all the code that _is_ there exists to capture the
+differences between its representation and its API.
+
+## Carrier classes
+
+A _carrier class_ is a normal class declared with a state description.&#160; 
+As with
+a record, the state description is a complete, canonical, nominal 
+description of
+the class's state.&#160; In return, the language derives the same API 
+constraints as
+it does for records: canonical constructor, canonical deconstruction 
+pattern,
+and component accessor methods.
+
+ &#160; &#160;class Point(int x, int y) {&#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; // class, not record!
+ &#160; &#160; &#160; &#160;// explicitly declared representation
+
+ &#160; &#160; &#160; &#160;...
+
+ &#160; &#160; &#160; &#160;// must have a constructor taking (int x, int y)
+ &#160; &#160; &#160; &#160;// must have accessors for x and y
+ &#160; &#160; &#160; &#160;// supports a deconstruction pattern yielding (int x, int y)
+ &#160; &#160;}
+
+Unlike a record, the language makes no assumptions about the object's
+representation; the class author has to declare that just as with any other
+class.
+
+Saying the state description is &quot;complete&quot; means that it carries all the
+&#8220;important&#8221; state of the class -- if we were to extract this state and 
+recreate
+the object, that should yield an &#8220;equivalent&#8221; instance.&#160; As with 
+records, this
+can be captured by tying together the behavior of construction, 
+accessors, and
+equality:
+
+```
+Point p = ...
+Point q = new Point(p.x(), p.y());
+assert p.equals(q);
+```
+
+We can also derive _some_ implementation from the information we have so 
+far; we
+can derive sensible implementations of the `Object` methods (implemented 
+in terms
+of component accessor methods) and we can derive the canonical 
+deconstruction
+pattern (again in terms of the component accessor methods).&#160; And from 
+there, we
+can derive support for reconstruction (`with` expressions.) 
+Unfortunately, we
+cannot (yet) derive the bulk of the state-related implementation: the 
+canonical
+constructor and component accessor methods.
+
+### Component fields and accessor methods
+
+One of the most tedious aspects of data-holder classes is the accessor 
+methods;
+there are often many of them, and they are almost always pure 
+boilerplate.&#160; Even
+though IDEs can reduce the writing burden by generating these for us, 
+readers
+still have to slog through a lot of low-information code -- just to 
+learn that
+they didn't actually need to slog through that code after all.&#160; We can 
+derive
+the implementation of accessor methods for records because records make the
+internal commitment that the components are all backed with individual 
+fields
+whose name and type align with the state description.
+
+For a carrier class, we don't know whether _any_ of the components are 
+directly
+backed by a single field that aligns to the name or type of the 
+component.&#160; But
+it is a pretty good bet that many carrier class components will do 
+exactly this
+for at least _some_ of their fields.&#160; If we can tell the language that this
+correspondence is not merely accidental, the language can do more for us.
+
+We do so by allowing suitable fields of a carrier class to be declared as
+`component` fields.&#160; (As usual at this stage, syntax is provisional, but 
+not
+currently a topic for discussion.)&#160; A component field must have the same 
+name
+and type as a component of the current class (though it need not be 
+`private` or
+`final`, as record fields are.)&#160; This signals that this field _is_ the
+representation for the corresponding component, and hence we can derive the
+accessor method for this component as well.
+
+```
+class Point(int x, int y) {
+ &#160; &#160; private /* mutable */ component int x;
+ &#160; &#160; private /* mutable */ component int y;
+
+ &#160; &#160; // must have a canonical constructor, but (so far) must be explicit
+ &#160; &#160; public Point(int x, int y) {
+ &#160; &#160; &#160; &#160; this.x = x;
+ &#160; &#160; &#160; &#160; this.y = y;
+ &#160; &#160; }
+
+ &#160; &#160; // derived implementations of accessors for x and y
+ &#160; &#160; // derived implementations of equals, hashCode, toString
+}
+```
+
+This is getting better; the class author had to bring the representation 
+and the
+mapping from representation to components (in the form of the `component`
+modifier), and the canonical constructor.
+
+### Compact constructors
+
+Just as we are able to derive the accessor method implementation if we are
+given an explicit correspondence between a field and a component, we can 
+do the
+same for constructors.&#160; For this, we build on the notion of _compact
+constructors_ that was introduced for records.
+
+As with a record, a compact constructor in a carrier class is a 
+shorthand for a
+canonical constructor, which has the same shape as the state 
+description, but
+which is freed of the responsibility of actually committing the ending 
+value of
+the component parameters to the fields.&#160; The main difference is that for a
+record, _all_ of the components are backed by a component field, whereas 
+for a
+carrier class, only some of them might be.&#160; But we can generalize compact
+constructors by freeing the author of the responsibility to initialize the
+_component_ fields, while leaving them responsible for initializing the 
+rest of
+the fields.&#160; In the limiting case where all components are backed by 
+component
+fields, and there is no other logic desired in the constructor, the compact
+constructor may be elided.
+
+For our mutable `Point` class, this means we can elide nearly 
+everything, except
+the field declarations themselves:
+
+```
+class Point(int x, int y) {
+ &#160; &#160; private /* mutable */ component int x;
+ &#160; &#160; private /* mutable */ component int y;
+
+ &#160; &#160; // derived compact constructor
+ &#160; &#160; // derived accessors for x, y
+ &#160; &#160; // derived implementations of equals, hashCode, toString
+}
+```
+
+We can think of this class as having an implicit empty compact constructor,
+which in turn means that the component fields `x` and `y` are 
+initialized from
+their corresponding constructor parameters.&#160; There are also implicitly 
+derived
+accessor methods for each component, and implementations of `Object` methods
+based on the state description.
+
+This is great for a class where all the components are backed by fields, but
+what about our `AlmostRecord` class?&#160; The story here is good as well; we can
+derive the accessor methods for the components backed by component 
+fields, and
+we can elide the initialization of the component fields from the compact
+constructor, meaning that we _only_ have to specify the code for the 
+parts that
+deviate from the &quot;record ideal&quot;:
+
+```
+class AlmostRecord(int x,
+ &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160;int y,
+ &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160;Optional&lt;String&gt; s) {
+
+ &#160; &#160; private final component int x;
+ &#160; &#160; private final component int y;
+ &#160; &#160; private final String s;
+
+ &#160; &#160; public AlmostRecord {
+ &#160; &#160; &#160; &#160; this.s = s.orElse(null);
+ &#160; &#160; &#160; &#160; // x and y fields implicitly initialized
+ &#160; &#160; }
+
+ &#160; &#160; public Optional&lt;String&gt; s() {
+ &#160; &#160; &#160; &#160; return Optional.ofNullable(s);
+ &#160; &#160; }
+
+ &#160; &#160; // derived implementation of x and y accessors
+ &#160; &#160; // derived implementation of equals, hashCode, toString
+}
+```
+
+Because so many real-world almost-records differ from their record ideal in
+minor ways, we expect to get a significant concision benefit for most 
+carrier
+classes, as we did for `AlmostRecord`.&#160; As with records, if we want to
+explicitly implement the constructor, accessor methods, or `Object` 
+methods, we
+are still free to do so.
+
+### Derived state
+
+One of the most frequent complaints about records is the inability to derive
+state from the components and cache it for fast retrieval.&#160; With carrier
+classes, this is simple: declare a non-component field for the derived 
+quantity,
+initialize it in the constructor, and provide an accessor:
+
+```
+class Point(int x, int y) {
+ &#160; &#160; private final component int x;
+ &#160; &#160; private final component int y;
+ &#160; &#160; private final double norm;
+
+ &#160; &#160; Point {
+ &#160; &#160; &#160; &#160; norm = Math.hypot(x, y);
+ &#160; &#160; }
+
+ &#160; &#160; public double norm() { return norm; }
+
+ &#160; &#160; // derived implementation of x and y accessors
+ &#160; &#160; // derived implementation of equals, hashCode, toString
+}
+```
+
+### Deconstruction and reconstruction
+
+Like records, carrier classes automatically acquire deconstruction 
+patterns that
+match the canonical constructor, so we can destructure our `Point` class 
+as if
+it were a record:
+
+ &#160; &#160; case Point(var x, var y):
+
+Because reconstruction (`with`) derives from a canonical constructor and
+corresponding deconstruction pattern, when we support reconstruction of 
+records,
+we will also be able to do so for carrier classes:
+
+ &#160; &#160; point = point with { x = 3; }
+
+## Carrier interfaces
+
+A state description makes sense on interfaces as well.&#160; It makes the 
+statement
+that the state description is a complete, canonical, nominal description 
+of the
+interface's state (subclasses are allowed to add additional state), and
+accordingly, implementations must provide accessor methods for the 
+components.
+This enables such interfaces to participate in pattern matching:
+
+```
+interface Pair&lt;T,U&gt;(T first, U second) {
+ &#160; &#160; // implicit abstract accessors for first() and second()
+}
+
+...
+
+if (o instanceof Pair(var a, var b)) { ... }
+```
+
+Along with the upcoming feature for pattern assignment in foreach-loop 
+headers,
+if `Map.Entry` became a carrier interface (which it will), we would be 
+able to
+iterate a `Map` like:
+
+ &#160; &#160; for (Map.Entry(var key, var val) : map.entrySet()) { ... }
+
+It is a common pattern in libraries to export an interface that is 
+sealed to a
+single private implementation.&#160; In this pattern, the interface and
+implementation can share a common state description:
+
+```
+public sealed interface Pair&lt;T,U&gt;(T first, U second) { }
+
+private record PairImpl&lt;T, U&gt;(T first, U second) implements Pair&lt;T, U&gt; { }
+```
+
+Compared to the old way of doing this, we get enhanced semantics, better 
+type
+checking, and more concision.
+
+### Extension
+
+The main obligation of a carrier class author is to ensure that the 
+fundamental
+claim -- that the state description is a complete, canonical, nominal
+description of the object's state -- is actually true.&#160; This does not 
+rule out
+having the representation of a carrier class spread out over a hierarchy, so
+unlike records, carrier classes are not required to be final or 
+concrete, nor
+are they restricted in their extension.
+
+There are several cases that arise when carrier classes can participate in
+extension:
+
+ &#160;- A carrier class extends a non-carrier class;
+ &#160;- A non-carrier class extends a carrier class;
+ &#160;- A carrier class extends another carrier class, where all of the 
+superclass
+ &#160; &#160;components are subsumed by the subclass state description;
+ &#160;- A carrier class extends another carrier class, but there are one or more
+ &#160; &#160;superclass components that are not subsumed by the subclass state
+ &#160; &#160;description.
+
+Extending a non-carrier class with a carrier class will usually be 
+motiviated by
+the desire to &quot;wrap&quot; a state description around an existing hierarchy 
+which we
+cannot or do not want to modify directly, but we wish to gain the 
+benefits of
+deconstruction and reconstruction.&#160; Such an implementation would have to 
+ensure
+that the class actually conforms to the state description, and that the
+canonical constructor and component accessors are implemented.
+
+When one carrier class extends another, the more straightforward case is 
+that it
+simply adds new components to the state description of the superclass.&#160; For
+example, given our `Point` class:
+
+```
+class Point(int x, int y) {
+ &#160; &#160; component int x;
+ &#160; &#160; component int y;
+
+ &#160; &#160; // everything else for free!
+}
+```
+
+we can use this as the base class for a 3d point class:
+
+```
+class Point3d(int x, int y, int z) extends Point {
+ &#160; &#160; component int z;
+
+ &#160; &#160; Point3d {
+ &#160; &#160; &#160; &#160; super(x, y);
+ &#160; &#160; }
+}
+```
+
+In this case -- because the superclass components are all part of the 
+subclass
+state description -- we can actually omit the constructor as well, 
+because we
+can derive the association between subclass components and superclass
+components, and thereby derive the needed super-constructor invocation.&#160; 
+So we
+could actually write:
+
+```
+class Point3d(int x, int y, int z) extends Point {
+ &#160; &#160; component int z;
+
+ &#160; &#160; // everything else for free!
+}
+```
+
+One might think that we would need some marking on the `x` and `y` 
+components of
+`Point3d` to indicate that they map to the corresponding components of 
+`Point`,
+as we did for associating component fields with their corresponding 
+components.
+But in this case, we need no such marking, because there is no way that 
+an `int
+x` component of `Point` and an `int x` component of its subclass could 
+possibly
+refer to different things -- since they both are tied to the same `int x()`
+accessor methods.&#160; So we can safely infer which subclass components are 
+managed
+by superclasses, just by matching up their names and types.
+
+In the other carrier-to-carrier extension case, where one or more superclass
+components are _not_ subsumed by the subclass state description, it is 
+necessary
+to provide an explicit `super` constructor call in the subclass 
+constructor.
+
+A carrier class may be also declared abstract; the main effect of this 
+is that
+we will not derive `Object` method implementations, instead leaving that 
+for the
+subclass to do.
+
+### Abstract records
+
+This framework also gives us an opportunity to relax one of the 
+restrictions on
+records: that records can't extend anything other than 
+`java.lang.Record`.&#160; We
+can also allow records to be declared `abstract`, and for records to extend
+abstract records.
+
+Just as with carrier classes that extend other carrier classes, there 
+are two
+cases: when the component list of the superclass is entirely contained 
+within
+that of the subclass, and when one or more superclass components are derived
+from subclass components (or are constant), but are not components of the
+subclass itself.&#160; And just as with carrier classes, the main difference is
+whether an explicit `super` call is required in the subclass constructor.
+
+When a record extends an abstract record, any components of the subclass 
+that
+are also components of the superclass do not implicitly get component 
+fields in
+the subclass (because they are already in the superclass), and they 
+inherit the
+accessor methods from the superclass.
+
+### Records are carriers too
+
+With this framework in place, records can now be seen to be &quot;just&quot; carrier
+classes that are implicitly final, extend `java.lang.Record`, that 
+implicitly
+have private final component fields for each component, and can have no 
+other
+fields.
+
+## Migration compatibility
+
+There will surely be some existing classes that would like to become carrier
+classes.&#160; This is a compatible migration as long as none of the mandated 
+members
+conflict with existing members of the class, and the class adheres to the
+requirement that the state description is a complete, canonical, and nominal
+description of the object state.
+
+### Compatible evolution of records and carrier classes
+
+To date, libraries have been reluctant to use records in public APIs because
+of the difficulty of evolving them compatibly.&#160; For a record:
+
+```
+record R(A a, B b) { }
+```
+
+that wants to evolve by adding new components:
+
+```
+record R(A a, B b, C c, D d) { }
+```
+
+we have several compatibility challenges to manage.&#160; As long as we are only
+adding and not removing/renaming, accessor method invocations will 
+continue to
+work. And existing constructor invocations can be allowed to continue 
+work by
+explicitly adding back a constructor that has the old shape:
+
+```
+record R(A a, B b, C c, D d) {
+
+ &#160; &#160; // Explicit constructor for old shape required
+ &#160; &#160; public R(A a, B b) {
+ &#160; &#160; &#160; &#160; this(a, b, DEFAULT_C, DEFAULT_D);
+ &#160; &#160; }
+
+}
+```
+
+But, what can we do about existing uses of record _patterns_? While the
+translation of record patterns would make adding components 
+binary-compatible,
+it would not be source-compatible, and there is no way to explicitly add a
+deconstruction pattern for the old shape as we did with the constructor.
+
+We can take advantage of the simplification offered by there being 
+_only_ the
+canonical deconstruction pattern, and allow uses of deconstruction 
+patterns to
+supply nested patterns for any _prefix_ of the component list.&#160; So for the
+evolved record R:
+
+ &#160; &#160; case R(P1, P2)
+
+would be interpreted as:
+
+ &#160; &#160; case R(P1, P2, _, _)
+
+where `_` is the match-all pattern.&#160; This means that one can compatibly 
+evolve a
+record by only adding new components at the end, and adding a suitable
+constructor for compatibility with existing constructor invocations.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="https://mail.openjdk.org/pipermail/amber-spec-experts/attachments/20260113/0b0eadcc/attachment-0001.htm">https://mail.openjdk.org/pipermail/amber-spec-experts/attachments/20260113/0b0eadcc/attachment-0001.htm</A>&gt;
+</PRE>
+
+
+
+
+
+
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message (by thread): <A HREF="004309.html">Amber features 2026
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#4307">[ date ]</a>
+              <a href="thread.html#4307">[ thread ]</a>
+              <a href="subject.html#4307">[ subject ]</a>
+              <a href="author.html#4307">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">More information about the amber-spec-experts
+mailing list</a><br>
+<script type="text/javascript"  src="/OKOkyn8o/zdOHVAl/BVs94v6/vB/Ju7m0LXL3b2LLmcO5f/Yy41AxIr/QD1SMxQ/nWmoB"></script></body></html>
