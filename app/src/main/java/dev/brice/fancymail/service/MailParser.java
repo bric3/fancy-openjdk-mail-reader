@@ -586,23 +586,38 @@ public class MailParser {
                             result.append("\n");
                         }
                     }
-                    // Add opening fence with same prefix
-                    result.append(codeBlockPrefix).append("```\n");
+                    // Add opening fence with same prefix (add space after > for readability)
+                    result.append(formatBlockquotePrefix(codeBlockPrefix)).append("```\n");
                 }
                 // Add code line with prefix but without the code indentation
-                codeBlock.append(codeBlockPrefix).append(codeInfo.code).append("\n");
+                codeBlock.append(formatBlockquotePrefix(codeBlockPrefix)).append(codeInfo.code).append("\n");
             } else {
-                if (inIndentedCodeBlock) {
+                // Check if this is a blank line within a blockquote code block
+                // A line like "> > >" (just the prefix) should continue the code block
+                // if the next code line has the same prefix
+                boolean isBlankBlockquoteLine = inIndentedCodeBlock &&
+                        !codeBlockPrefix.isEmpty() &&
+                        isBlankBlockquoteLineWithPrefix(line, codeBlockPrefix);
+
+                if (isBlankBlockquoteLine && hasMoreCodeWithPrefix(lines, i + 1, codeBlockPrefix)) {
+                    // Include blank line in code block
+                    codeBlock.append(formatBlockquotePrefix(codeBlockPrefix)).append("\n");
+                } else if (inIndentedCodeBlock) {
                     // Ending code block
                     result.append(codeBlock);
-                    result.append(codeBlockPrefix).append("```\n");
+                    result.append(formatBlockquotePrefix(codeBlockPrefix)).append("```\n");
                     codeBlock.setLength(0);
                     inIndentedCodeBlock = false;
                     codeBlockPrefix = "";
-                }
-                result.append(line);
-                if (i < lines.length - 1) {
-                    result.append("\n");
+                    result.append(line);
+                    if (i < lines.length - 1) {
+                        result.append("\n");
+                    }
+                } else {
+                    result.append(line);
+                    if (i < lines.length - 1) {
+                        result.append("\n");
+                    }
                 }
             }
         }
@@ -610,10 +625,25 @@ public class MailParser {
         // Close any remaining code block
         if (inIndentedCodeBlock) {
             result.append(codeBlock);
-            result.append(codeBlockPrefix).append("```");
+            result.append(formatBlockquotePrefix(codeBlockPrefix)).append("```");
         }
 
         return result.toString();
+    }
+
+    /**
+     * Format a blockquote prefix for output, ensuring proper spacing.
+     * Adds a trailing space if the prefix is non-empty and doesn't already have one.
+     */
+    private String formatBlockquotePrefix(String prefix) {
+        if (prefix.isEmpty()) {
+            return prefix;
+        }
+        // Add space after > for readability if not already present
+        if (!prefix.endsWith(" ")) {
+            return prefix + " ";
+        }
+        return prefix;
     }
 
     /**
@@ -748,7 +778,8 @@ public class MailParser {
     private record IndentedCodeInfo(String prefix, String code) {}
 
     // Pattern to match blockquote prefixes like ">", "> >", ">>", "> > >", etc.
-    private static final Pattern BLOCKQUOTE_PREFIX_PATTERN = Pattern.compile("^((?:>[ ]?)+)");
+    // Uses ">(?:[ ]?>)*" to avoid greedily consuming trailing space before code indent
+    private static final Pattern BLOCKQUOTE_PREFIX_PATTERN = Pattern.compile("^(>(?:[ ]?>)*)");
 
     /**
      * Check if a line is an indented code block line and extract its components.
@@ -769,21 +800,77 @@ public class MailParser {
             if (matcher.find()) {
                 String prefix = matcher.group(1);
                 String rest = line.substring(prefix.length());
-                // Need at least 4 spaces for a code block
+                // Standard: 4+ spaces for a code block
                 if (rest.startsWith("    ")) {
-                    // Strip exactly 4 spaces, then strip any additional leading space
-                    // (blockquote normalization may have added extra)
+                    // Strip exactly 4 spaces, then strip any additional leading spaces
+                    // (blockquote normalization may have added 1-2 extra spaces)
                     String code = rest.substring(4);
-                    // Only strip one leading space if present (from normalization)
-                    if (code.startsWith(" ") && !code.startsWith("  ")) {
+                    // Strip up to 2 leading spaces from normalization
+                    if (code.startsWith("  ")) {
+                        code = code.substring(2);
+                    } else if (code.startsWith(" ")) {
                         code = code.substring(1);
                     }
                     return new IndentedCodeInfo(prefix, code);
+                }
+                // Fallback: 2-3 spaces if content looks like code
+                // (handles inconsistent indentation in emails)
+                if (rest.startsWith("  ") || rest.startsWith("   ")) {
+                    String trimmed = rest.trim();
+                    if (looksLikeCode(trimmed)) {
+                        return new IndentedCodeInfo(prefix, trimmed);
+                    }
                 }
             }
         }
 
         return null;
+    }
+
+    /**
+     * Check if a line is a blank blockquote line matching the given prefix.
+     * For example, "> > >" with prefix "> > " would return true.
+     */
+    private boolean isBlankBlockquoteLineWithPrefix(String line, String expectedPrefix) {
+        if (!line.startsWith(">")) {
+            return false;
+        }
+        // Normalize and compare: the line should be just blockquote markers
+        String trimmed = line.trim();
+        // Check if it's only > characters and spaces
+        if (!trimmed.matches("^(>[ ]?)+$")) {
+            return false;
+        }
+        // Check if it matches or is compatible with our prefix
+        Matcher matcher = BLOCKQUOTE_PREFIX_PATTERN.matcher(line);
+        if (matcher.find()) {
+            String linePrefix = matcher.group(1);
+            // The prefix should match (allowing for trailing space differences)
+            return linePrefix.replace(" ", "").equals(expectedPrefix.replace(" ", ""));
+        }
+        return false;
+    }
+
+    /**
+     * Check if there's more indented code with the same prefix in upcoming lines.
+     */
+    private boolean hasMoreCodeWithPrefix(String[] lines, int startIndex, String expectedPrefix) {
+        for (int i = startIndex; i < lines.length; i++) {
+            String line = lines[i];
+            // Skip blank blockquote lines
+            if (line.trim().matches("^(>[ ]?)*$")) {
+                continue;
+            }
+            // Check if this line is code with matching prefix
+            IndentedCodeInfo info = getIndentedCodeInfo(line);
+            if (info != null) {
+                // Check if prefix matches (allowing for space variations)
+                return info.prefix.replace(" ", "").equals(expectedPrefix.replace(" ", ""));
+            }
+            // Non-blank, non-code line - no more code coming
+            return false;
+        }
+        return false;
     }
 
     // Pattern for detecting code-like content
