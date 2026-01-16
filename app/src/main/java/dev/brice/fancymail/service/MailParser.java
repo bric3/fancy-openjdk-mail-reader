@@ -1139,6 +1139,16 @@ public class MailParser {
                     int spaceCount = prevIndent.length() - prevIndent.replace(" ", "").length();
 
                     if (spaceCount >= 4) {
+                        // Don't treat closing braces/brackets as orphans in code blocks
+                        // They're intentionally at column 0 to close the block
+                        if (line.trim().matches("^[}\\]);]+$")) {
+                            result.append(line);
+                            if (i < lines.length - 1) {
+                                result.append("\n");
+                            }
+                            continue;
+                        }
+
                         boolean nextLineResumes = nextLine.isBlank() ||
                                 INDENT_PATTERN.matcher(nextLine).find() ||
                                 nextLine.startsWith("```");
