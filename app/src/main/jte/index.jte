@@ -8,6 +8,7 @@
   file, You can obtain one at https://mozilla.org/MPL/2.0/.
 --%>
 @param String title
+@param dev.brice.fancymail.config.Messages.Index msg = null
 
 <!DOCTYPE html>
 <html lang="en">
@@ -127,37 +128,37 @@
 </head>
 <body>
     <div class="container">
-        <h1>Fancy Mail</h1>
-        <p class="subtitle">Beautify OpenJDK mailing list emails</p>
+        <h1>${msg.title()}</h1>
+        <p class="subtitle">${msg.subtitle()}</p>
 
         <form action="/go" method="post">
-            <label for="url">Paste an OpenJDK mailing list URL:</label>
+            <label for="url">${msg.formLabel()}</label>
             <input type="url"
                    id="url"
                    name="url"
-                   placeholder="https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004307.html"
+                   placeholder="${msg.formPlaceholder()}"
                    required
                    autofocus>
-            <button type="submit">Beautify</button>
+            <button type="submit">${msg.formSubmit()}</button>
         </form>
 
         <div class="example">
-            <h3>Example URL</h3>
-            <p><code>https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004307.html</code></p>
+            <h3>${msg.exampleTitle()}</h3>
+            <p><code>${msg.formPlaceholder()}</code></p>
         </div>
 
         <div class="features">
             <div class="feature">
-                <h4>Clean Layout</h4>
-                <p>Removes navigation clutter and formats content beautifully</p>
+                <h4>${msg.featureCleanTitle()}</h4>
+                <p>${msg.featureCleanDesc()}</p>
             </div>
             <div class="feature">
-                <h4>Code Highlighting</h4>
-                <p>Properly formatted code blocks with syntax highlighting</p>
+                <h4>${msg.featureCodeTitle()}</h4>
+                <p>${msg.featureCodeDesc()}</p>
             </div>
             <div class="feature">
-                <h4>Link Rewriting</h4>
-                <p>Links to other mails open in this reader too</p>
+                <h4>${msg.featureLinksTitle()}</h4>
+                <p>${msg.featureLinksDesc()}</p>
             </div>
         </div>
     </div>

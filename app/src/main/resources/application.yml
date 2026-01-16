@@ -18,3 +18,38 @@ fancymail:
   cache:
     max-size: 1000
     expire-after-write: PT1H  # 1 hour
+
+# UI Messages - can be overridden to customize text
+messages:
+  index:
+    title: Fancy Mail
+    subtitle: Beautify OpenJDK mailing list emails
+    form-label: "Paste an OpenJDK mailing list URL:"
+    form-placeholder: "https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004307.html"
+    form-submit: Beautify
+    example-title: Example URL
+    feature-clean-title: Clean Layout
+    feature-clean-desc: Removes navigation clutter and formats content beautifully
+    feature-code-title: Code Highlighting
+    feature-code-desc: Properly formatted code blocks with syntax highlighting
+    feature-links-title: Link Rewriting
+    feature-links-desc: Links to other mails open in this reader too
+  rendered:
+    back: Back to Fancy Mail
+    error-label: "Error:"
+    error-goback: Go back and try another URL
+    meta-from: "From:"
+    meta-date: "Date:"
+    meta-list: "List:"
+    meta-original: "Original:"
+    nav-no-previous: No previous message
+    nav-no-next: No next message
+    nav-sort-by: "Sort by:"
+    nav-date: date
+    nav-thread: thread
+    nav-subject: subject
+    nav-author: author
+    footer-source: "Source:"
+    footer-mailing-list: mailing list
+    footer-view-markdown: View Markdown
+    footer-view-original: View Original

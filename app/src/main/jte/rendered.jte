@@ -13,6 +13,7 @@
 @param String list = ""
 @param String yearMonth = ""
 @param String id = ""
+@param dev.brice.fancymail.config.Messages.Rendered msg = null
 
 <!DOCTYPE html>
 <html lang="en">
@@ -232,33 +233,33 @@
 </head>
 <body>
     <div class="header">
-        <a href="/">&#8592; Back to Fancy Mail</a>
+        <a href="/">&#8592; ${msg.back()}</a>
     </div>
 
     <div class="container">
         @if(error != null)
             <div class="error">
-                <strong>Error:</strong> ${error}
+                <strong>${msg.errorLabel()}</strong> ${error}
             </div>
-            <p><a href="/">&#8592; Go back and try another URL</a></p>
+            <p><a href="/">&#8592; ${msg.errorGoback()}</a></p>
         @else
             <h1>${mail.subject()}</h1>
 
             <div class="meta">
                 <div class="meta-item">
-                    <span class="meta-label">From:</span>
+                    <span class="meta-label">${msg.metaFrom()}</span>
                     <span class="meta-value">${mail.from()}@if(mail.email() != null) (${mail.email()})@endif</span>
                 </div>
                 <div class="meta-item">
-                    <span class="meta-label">Date:</span>
+                    <span class="meta-label">${msg.metaDate()}</span>
                     <span class="meta-value">${mail.date()}</span>
                 </div>
                 <div class="meta-item">
-                    <span class="meta-label">List:</span>
+                    <span class="meta-label">${msg.metaList()}</span>
                     <span class="meta-value">${mail.list()}</span>
                 </div>
                 <div class="meta-item">
-                    <span class="meta-label">Original:</span>
+                    <span class="meta-label">${msg.metaOriginal()}</span>
                     <a href="${mail.originalUrl()}" target="_blank">${mail.originalUrl()} <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
                 </div>
             </div>
@@ -270,27 +271,27 @@
                         @if(mail.navigation().prevMessage() != null)
                         <span>&#8592; <a href="${mail.navigation().prevMessage().url()}" class="nav-link">${mail.navigation().prevMessage().title()}</a></span>
                         @else
-                        <span class="nav-link disabled">&#8592; No previous message</span>
+                        <span class="nav-link disabled">&#8592; ${msg.navNoPrevious()}</span>
                         @endif
                         @if(mail.navigation().nextMessage() != null)
                         <span><a href="${mail.navigation().nextMessage().url()}" class="nav-link">${mail.navigation().nextMessage().title()}</a> &#8594;</span>
                         @else
-                        <span class="nav-link disabled">No next message &#8594;</span>
+                        <span class="nav-link disabled">${msg.navNoNext()} &#8594;</span>
                         @endif
                     </div>
                     <div class="nav-indexes">
-                        <span>Sort by:</span>
+                        <span>${msg.navSortBy()}</span>
                         @if(mail.navigation().dateIndexUrl() != null)
-                        <a href="${mail.navigation().dateIndexUrl()}" target="_blank">date <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
+                        <a href="${mail.navigation().dateIndexUrl()}" target="_blank">${msg.navDate()} <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
                         @endif
                         @if(mail.navigation().threadIndexUrl() != null)
-                        <a href="${mail.navigation().threadIndexUrl()}" target="_blank">thread <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
+                        <a href="${mail.navigation().threadIndexUrl()}" target="_blank">${msg.navThread()} <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
                         @endif
                         @if(mail.navigation().subjectIndexUrl() != null)
-                        <a href="${mail.navigation().subjectIndexUrl()}" target="_blank">subject <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
+                        <a href="${mail.navigation().subjectIndexUrl()}" target="_blank">${msg.navSubject()} <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
                         @endif
                         @if(mail.navigation().authorIndexUrl() != null)
-                        <a href="${mail.navigation().authorIndexUrl()}" target="_blank">author <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
+                        <a href="${mail.navigation().authorIndexUrl()}" target="_blank">${msg.navAuthor()} <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
                         @endif
                     </div>
                 </div>
@@ -310,27 +311,27 @@
                         @if(mail.navigation().prevMessage() != null)
                         <span>&#8592; <a href="${mail.navigation().prevMessage().url()}" class="nav-link">${mail.navigation().prevMessage().title()}</a></span>
                         @else
-                        <span class="nav-link disabled">&#8592; No previous message</span>
+                        <span class="nav-link disabled">&#8592; ${msg.navNoPrevious()}</span>
                         @endif
                         @if(mail.navigation().nextMessage() != null)
                         <span><a href="${mail.navigation().nextMessage().url()}" class="nav-link">${mail.navigation().nextMessage().title()}</a> &#8594;</span>
                         @else
-                        <span class="nav-link disabled">No next message &#8594;</span>
+                        <span class="nav-link disabled">${msg.navNoNext()} &#8594;</span>
                         @endif
                     </div>
                     <div class="nav-indexes">
-                        <span>Sort by:</span>
+                        <span>${msg.navSortBy()}</span>
                         @if(mail.navigation().dateIndexUrl() != null)
-                        <a href="${mail.navigation().dateIndexUrl()}" target="_blank">date <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
+                        <a href="${mail.navigation().dateIndexUrl()}" target="_blank">${msg.navDate()} <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
                         @endif
                         @if(mail.navigation().threadIndexUrl() != null)
-                        <a href="${mail.navigation().threadIndexUrl()}" target="_blank">thread <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
+                        <a href="${mail.navigation().threadIndexUrl()}" target="_blank">${msg.navThread()} <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
                         @endif
                         @if(mail.navigation().subjectIndexUrl() != null)
-                        <a href="${mail.navigation().subjectIndexUrl()}" target="_blank">subject <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
+                        <a href="${mail.navigation().subjectIndexUrl()}" target="_blank">${msg.navSubject()} <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
                         @endif
                         @if(mail.navigation().authorIndexUrl() != null)
-                        <a href="${mail.navigation().authorIndexUrl()}" target="_blank">author <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
+                        <a href="${mail.navigation().authorIndexUrl()}" target="_blank">${msg.navAuthor()} <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
                         @endif
                     </div>
                 </div>
@@ -339,11 +340,11 @@
 
             <div class="footer">
                 <p>
-                    <em>Source: <a href="${mail.originalUrl()}" target="_blank">${mail.list()} mailing list <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a></em>
+                    <em>${msg.footerSource()} <a href="${mail.originalUrl()}" target="_blank">${mail.list()} ${msg.footerMailingList()} <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a></em>
                 </p>
                 <div class="actions">
-                    <a href="/markdown/${list}/${yearMonth}/${id}.md" target="_blank">View Markdown</a>
-                    <a href="${mail.originalUrl()}" target="_blank">View Original <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
+                    <a href="/markdown/${list}/${yearMonth}/${id}.md" target="_blank">${msg.footerViewMarkdown()}</a>
+                    <a href="${mail.originalUrl()}" target="_blank">${msg.footerViewOriginal()} <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
                 </div>
             </div>
         @endif

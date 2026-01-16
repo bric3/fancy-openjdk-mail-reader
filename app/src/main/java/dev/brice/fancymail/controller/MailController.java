@@ -9,6 +9,8 @@
  */
 package dev.brice.fancymail.controller;
 
+import dev.brice.fancymail.config.Messages.Index;
+import dev.brice.fancymail.config.Messages.Rendered;
 import dev.brice.fancymail.model.MailPath;
 import dev.brice.fancymail.model.ParsedMail;
 import dev.brice.fancymail.service.MailService;
@@ -40,9 +42,13 @@ public class MailController {
     private static final Logger LOG = LoggerFactory.getLogger(MailController.class);
 
     private final MailService mailService;
+    private final Index indexMessages;
+    private final Rendered renderedMessages;
 
-    public MailController(MailService mailService) {
+    public MailController(MailService mailService, Index indexMessages, Rendered renderedMessages) {
         this.mailService = mailService;
+        this.indexMessages = indexMessages;
+        this.renderedMessages = renderedMessages;
     }
 
     /**
@@ -52,7 +58,8 @@ public class MailController {
     @View("index")
     public Map<String, Object> index() {
         return Map.of(
-                "title", "Fancy Mail - OpenJDK Mailing List Beautifier"
+                "title", "Fancy Mail - OpenJDK Mailing List Beautifier",
+                "msg", indexMessages
         );
     }
 
@@ -95,13 +102,15 @@ public class MailController {
                     "mail", mail,
                     "list", list,
                     "yearMonth", yearMonth,
-                    "id", id
+                    "id", id,
+                    "msg", renderedMessages
             );
         } catch (Exception e) {
             LOG.error("Error rendering mail: {}/{}/{}", list, yearMonth, id, e);
             return Map.of(
                     "title", "Error",
-                    "error", "Failed to fetch or parse mail: " + e.getMessage()
+                    "error", "Failed to fetch or parse mail: " + e.getMessage(),
+                    "msg", renderedMessages
             );
         }
     }
