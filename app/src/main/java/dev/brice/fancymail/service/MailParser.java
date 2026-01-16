@@ -509,6 +509,9 @@ public class MailParser {
      * <p>
      * Markdown requires a blank line before indented code blocks, so we add one
      * when the previous line is not blank and not already a code block.
+     * <p>
+     * Lines that look like list items (starting with - or * after indentation)
+     * are excluded from this conversion.
      */
     private String convertLightlyIndentedCodeToBlocks(String content) {
         String[] lines = content.split("\n", -1);
@@ -517,16 +520,19 @@ public class MailParser {
         for (int i = 0; i < lines.length; i++) {
             String line = lines[i];
             String prevLine = i > 0 ? lines[i - 1] : "";
+            String trimmed = line.trim();
 
             // Check for lines with 2-3 space indentation (not already 4+)
-            if (line.matches("^ {2,3}\\S.*") && looksLikeCode(line.trim())) {
+            // Exclude list items (lines starting with - or * or number followed by space)
+            boolean isListItem = trimmed.matches("^([-*]|\\d+\\.)\\s.*");
+            if (line.matches("^ {2,3}\\S.*") && !isListItem && looksLikeCode(trimmed)) {
                 // Add blank line before code block if previous line is not blank
                 // and not already an indented code block
                 if (!prevLine.isBlank() && !prevLine.startsWith("    ")) {
                     result.append("\n");
                 }
                 // Convert to 4-space indentation for proper code block
-                result.append("    ").append(line.trim());
+                result.append("    ").append(trimmed);
             } else {
                 result.append(line);
             }
@@ -549,11 +555,14 @@ public class MailParser {
     // Pattern to extract leading indentation (spaces or blockquote prefix "> " followed by spaces)
     private static final Pattern INDENT_PATTERN = Pattern.compile("^((?:> ?)?[ ]+)");
 
+    // Pattern to detect list items (optional indent + - or * or number. + space)
+    private static final Pattern LIST_ITEM_PATTERN = Pattern.compile("^( {0,3})([-*]|\\d+\\.)\\s");
+
     /**
      * Fix orphan continuation lines caused by email line wrapping.
      * <p>
-     * When email clients wrap long lines in code blocks, the continuation often starts
-     * at column 0, which prematurely terminates the markdown code block. For example:
+     * When email clients wrap long lines in code blocks or list items, the continuation
+     * often starts at column 0, which breaks the formatting. For example:
      * <pre>
      *     throw new IllegalArgumentException("denominator cannot
      * be zero");
@@ -567,7 +576,7 @@ public class MailParser {
      * It only fixes SINGLE orphan lines (where the next line resumes normal indentation
      * or is blank), to avoid incorrectly modifying intentionally unindented text.
      * <p>
-     * Also handles blockquotes (lines starting with "> " followed by indentation).
+     * Handles: code blocks (4+ space indent), list items, and blockquotes.
      */
     private String fixOrphanContinuationLines(String content) {
         String[] lines = content.split("\n", -1);
@@ -580,20 +589,19 @@ public class MailParser {
 
             // Check if this is an orphan continuation line:
             // 1. Current line starts at column 0 (no leading whitespace, not a blockquote)
-            // 2. Previous line was indented (code block or blockquote with code)
+            // 2. Previous line was indented (code block, list item, or blockquote)
             // 3. Current line is not blank
             // 4. Next line either resumes indentation or is blank (single orphan)
             boolean isOrphanLine = false;
 
             if (!line.isEmpty() && !Character.isWhitespace(line.charAt(0)) && !line.startsWith(">")) {
+                // Check for code block continuation (4+ spaces)
                 Matcher prevIndentMatcher = INDENT_PATTERN.matcher(prevLine);
                 if (prevIndentMatcher.find()) {
                     String prevIndent = prevIndentMatcher.group(1);
-                    // Check if it's a code block indent (4+ spaces, or blockquote + 4+ spaces for code in quotes)
                     int spaceCount = prevIndent.length() - prevIndent.replace(" ", "").length();
 
                     if (spaceCount >= 4) {
-                        // Check next line: should resume indentation or be blank
                         boolean nextLineResumes = nextLine.isBlank() ||
                                 INDENT_PATTERN.matcher(nextLine).find() ||
                                 nextLine.startsWith("```");
@@ -603,14 +611,30 @@ public class MailParser {
                         }
                     }
                 }
+
+                // Check for list item continuation
+                if (!isOrphanLine && LIST_ITEM_PATTERN.matcher(prevLine).find()) {
+                    // Next line should resume with indentation or be blank
+                    boolean nextLineResumes = nextLine.isBlank() ||
+                            nextLine.startsWith(" ") ||
+                            LIST_ITEM_PATTERN.matcher(nextLine).find();
+
+                    if (nextLineResumes) {
+                        isOrphanLine = true;
+                    }
+                }
             }
 
             if (isOrphanLine) {
-                // Join with previous line: remove trailing newline and add space
+                // Join with previous line: remove trailing newline/whitespace and add single space
                 if (result.length() > 0 && result.charAt(result.length() - 1) == '\n') {
                     result.setLength(result.length() - 1);
-                    result.append(" ");
                 }
+                // Also remove any trailing whitespace from previous line
+                while (result.length() > 0 && Character.isWhitespace(result.charAt(result.length() - 1))) {
+                    result.setLength(result.length() - 1);
+                }
+                result.append(" ");
                 result.append(line);
             } else {
                 result.append(line);

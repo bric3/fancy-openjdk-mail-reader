@@ -418,4 +418,103 @@ class MailParserTest {
         // Should not have the dashes
         assertThat(parsed.bodyHtml()).doesNotContain("-----");
     }
+
+    @Test
+    void parse_indentedListItems_notConvertedToCodeBlock() {
+        // List items with markdown links (containing parentheses) should not be treated as code
+        // This tests the sample from fixture 004307
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>\n" +
+                " &#160;- [Reconstruction](https://openjdk.org/jeps/468) of record instances, \n" +
+                "allowing\n" +
+                " &#160; &#160;the appearance of controlled mutation of record state.\n" +
+                " &#160;- Automatic marshalling and unmarshalling of record instances.\n" +
+                " &#160;- Instantiating or destructuring record instances identifying components\n" +
+                " &#160; &#160;nominally rather than positionally.\n" +
+                "</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // Should render as a list, not a code block
+        assertThat(parsed.bodyHtml()).contains("<ul>");
+        assertThat(parsed.bodyHtml()).contains("<li>");
+        // Should NOT be in a code block
+        assertThat(parsed.bodyHtml()).doesNotContain("<pre><code>- [Reconstruction]");
+        // The orphan "allowing" line should be joined with the previous line
+        assertThat(parsed.bodyMarkdown()).contains("instances, allowing");
+        assertThat(parsed.bodyMarkdown()).doesNotContain("instances, \nallowing");
+    }
+
+    @Test
+    void parse_orphanLineAfterCodeBlock_joinedWithPreviousLine() {
+        // When email wrapping breaks a code line, the orphan continuation should be joined
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>\n" +
+                "    record Rational(int num, int denom) {\n" +
+                "        Rational {\n" +
+                "            if (denom == 0)\n" +
+                "                throw new IllegalArgumentException(&quot;denominator cannot \n" +
+                "be zero&quot;);\n" +
+                "        }\n" +
+                "    }\n" +
+                "</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // The orphan "be zero" should be joined with the previous line
+        assertThat(parsed.bodyMarkdown()).contains("cannot be zero");
+        assertThat(parsed.bodyMarkdown()).doesNotContain("cannot \nbe zero");
+    }
+
+    @Test
+    void parse_indentedListItemsWithAsterisk_notConvertedToCodeBlock() {
+        // List items using * should also not be treated as code
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>\n" +
+                " &#160;* First item with some long text that wraps \n" +
+                "to the next line.\n" +
+                " &#160;* Second item.\n" +
+                " &#160;* Third item.\n" +
+                "</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // Should render as a list, not a code block
+        assertThat(parsed.bodyHtml()).contains("<ul>");
+        assertThat(parsed.bodyHtml()).contains("<li>");
+        // The orphan line should be joined
+        assertThat(parsed.bodyMarkdown()).contains("wraps to the next");
+    }
+
+    @Test
+    void parse_numberedList_notConvertedToCodeBlock() {
+        // Numbered lists should not be treated as code
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>\n" +
+                " &#160;1. First numbered item with long text that \n" +
+                "continues here.\n" +
+                " &#160;2. Second numbered item.\n" +
+                " &#160;3. Third numbered item.\n" +
+                "</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // Should render as an ordered list, not a code block
+        assertThat(parsed.bodyHtml()).contains("<ol>");
+        assertThat(parsed.bodyHtml()).contains("<li>");
+        // The orphan line should be joined
+        assertThat(parsed.bodyMarkdown()).contains("that continues here");
+    }
 }
