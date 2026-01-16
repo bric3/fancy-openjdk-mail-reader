@@ -17,10 +17,10 @@ A Micronaut application that fetches and beautifies emails from OpenJDK mailing 
 
 ## Quick Start
 
-### Server Mode (Default)
+### Server Mode
 
 ```bash
-./gradlew run
+./gradlew run --args="--server"
 ```
 
 This starts the server at `http://localhost:8080` and opens your browser automatically.
@@ -28,9 +28,14 @@ This starts the server at `http://localhost:8080` and opens your browser automat
 **Options:**
 - `--port <port>`: Use a custom port (default: 8080)
 - `--no-open`: Don't open browser automatically
+- `--url <url>`: Open a specific email URL directly
 
 ```bash
-./gradlew run --args="--port 9000 --no-open"
+# Custom port, don't open browser
+./gradlew run --args="--server --port 9000 --no-open"
+
+# Start server and open a specific email directly
+./gradlew run --args="--server --url https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004307.html"
 ```
 
 ### CLI Mode
@@ -158,4 +163,4 @@ Any OpenJDK Pipermail mailing list is supported, including:
 
 ## License
 
-MIT
+[Mozilla Public License 2.0](LICENSE)

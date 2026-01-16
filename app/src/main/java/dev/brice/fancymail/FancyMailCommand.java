@@ -9,16 +9,15 @@
  */
 package dev.brice.fancymail;
 
+import dev.brice.fancymail.model.MailPath;
 import dev.brice.fancymail.service.MailService;
 import io.micronaut.configuration.picocli.PicocliRunner;
 import io.micronaut.runtime.Micronaut;
 import jakarta.inject.Inject;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
-import picocli.CommandLine.Parameters;
 
 import java.awt.Desktop;
-import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -58,10 +57,16 @@ public class FancyMailCommand implements Callable<Integer> {
         if (serverMode) {
             return runServer();
         } else if (url != null && !url.isBlank()) {
+            // If URL is provided without --server, default to CLI mode (markdown output)
             return convertUrl();
         } else {
             System.err.println("Error: Either --url or --server must be specified");
             System.err.println("Use --help for usage information");
+            System.err.println();
+            System.err.println("Examples:");
+            System.err.println("  CLI mode:    fancymail --url <mail-url>");
+            System.err.println("  Server mode: fancymail --server");
+            System.err.println("  Server+URL:  fancymail --server --url <mail-url>");
             return 1;
         }
     }
@@ -91,12 +96,26 @@ public class FancyMailCommand implements Callable<Integer> {
         // Set the port via system property before Micronaut starts
         System.setProperty("micronaut.server.port", String.valueOf(port));
 
+        // Determine the URL to open
+        String browserUrl = "http://localhost:" + port;
+        if (url != null && !url.isBlank()) {
+            try {
+                // Convert the mail URL to the rendered path
+                MailPath mailPath = MailPath.fromUrl(url);
+                browserUrl = "http://localhost:" + port + mailPath.toRenderedPath();
+                System.err.println("Will open: " + browserUrl);
+            } catch (IllegalArgumentException e) {
+                System.err.println("Warning: Could not parse URL, opening home page instead: " + e.getMessage());
+            }
+        }
+
         // Open browser after a short delay
         if (openBrowser && Desktop.isDesktopSupported()) {
+            final String urlToOpen = browserUrl;
             new Thread(() -> {
                 try {
                     Thread.sleep(2000); // Wait for server to start
-                    Desktop.getDesktop().browse(URI.create("http://localhost:" + port));
+                    Desktop.getDesktop().browse(URI.create(urlToOpen));
                 } catch (Exception e) {
                     System.err.println("Could not open browser: " + e.getMessage());
                 }
