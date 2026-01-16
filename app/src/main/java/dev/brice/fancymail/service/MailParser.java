@@ -577,7 +577,8 @@ public class MailParser {
                     inIndentedCodeBlock = true;
                     codeBlockPrefix = codeInfo.prefix;
                     // Ensure blank line before code block if previous line wasn't blank
-                    if (result.length() > 0) {
+                    // BUT NOT for blockquote code - blank lines break blockquote continuity
+                    if (codeBlockPrefix.isEmpty() && result.length() > 0) {
                         String resultStr = result.toString();
                         if (!resultStr.endsWith("\n\n") && !resultStr.endsWith("\n")) {
                             result.append("\n");
