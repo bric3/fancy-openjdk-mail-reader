@@ -186,15 +186,21 @@
         }
         .nav-row {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
+            flex-direction: column;
             gap: 10px;
         }
         .nav-messages {
             display: flex;
+            justify-content: space-between;
             gap: 20px;
-            flex-wrap: wrap;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .nav-indexes {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            color: #666;
         }
         .nav-link {
             color: #667eea;
@@ -209,11 +215,6 @@
         }
         .nav-link.disabled:hover {
             text-decoration: none;
-        }
-        .nav-indexes {
-            display: flex;
-            gap: 8px;
-            color: #666;
         }
         .nav-indexes a {
             color: #667eea;
