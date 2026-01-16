@@ -623,4 +623,113 @@ class MailParserTest {
         assertThat(parsed.bodyMarkdown()).contains("{ }\n```");
         assertThat(parsed.bodyMarkdown()).doesNotContain("{ } ```");
     }
+
+    @Test
+    void parse_indentedCodeBlock_convertedToFencedCodeBlock() {
+        // Indented code blocks (4 spaces) should be converted to fenced code blocks
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>\n" +
+                "Here is some code:\n" +
+                "\n" +
+                "    record Point(int x, int y) { }\n" +
+                "    record Point3d(int x, int y, int z) { }\n" +
+                "\n" +
+                "That was the code.\n" +
+                "</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // Should have fenced code block, not indented
+        assertThat(parsed.bodyMarkdown()).contains("```\nrecord Point(int x, int y)");
+        assertThat(parsed.bodyMarkdown()).contains("{ }\n```");
+        // Should NOT have 4-space indented code
+        assertThat(parsed.bodyMarkdown()).doesNotContain("    record Point");
+    }
+
+    @Test
+    void parse_codeBlockInBlockquote_convertedToFencedWithPrefix() {
+        // Code blocks inside blockquotes should keep the > prefix
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>\n" +
+                "&gt; Here is quoted code:\n" +
+                "&gt;\n" +
+                "&gt;     void example() {\n" +
+                "&gt;         return;\n" +
+                "&gt;     }\n" +
+                "&gt;\n" +
+                "&gt; End of quote.\n" +
+                "</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // Should have fenced code block with > prefix
+        assertThat(parsed.bodyMarkdown()).contains("> ```\n> void example()");
+        assertThat(parsed.bodyMarkdown()).contains("> }\n> ```");
+    }
+
+    @Test
+    void parse_existingFencedCodeBlock_notModified() {
+        // Content inside existing fenced code blocks should not be modified
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>\n" +
+                "```\n" +
+                "class AlmostRecord(int x,\n" +
+                "                    int y,\n" +
+                "                    Optional&lt;String&gt; s) {\n" +
+                "\n" +
+                "     private final component int x;\n" +
+                "     private final component int y;\n" +
+                "     private final String s;\n" +
+                "}\n" +
+                "```\n" +
+                "</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // Should have exactly one opening and one closing fence
+        String markdown = parsed.bodyMarkdown();
+        int openCount = markdown.split("```", -1).length - 1;
+        assertThat(openCount).isEqualTo(2); // One open, one close
+
+        // Content should be preserved with indentation
+        assertThat(markdown).contains("class AlmostRecord(int x,");
+        assertThat(markdown).contains("                    int y,");
+        assertThat(markdown).contains("     private final component int x;");
+    }
+
+    @Test
+    void parse_listContinuationLines_notConvertedToCodeBlock() {
+        // Indented continuation lines inside list items should not become code blocks
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>\n" +
+                "  - A carrier class extends a non-carrier class;\n" +
+                "  - A non-carrier class extends a carrier class;\n" +
+                "  - A carrier class extends another carrier class, where all of the superclass\n" +
+                "    components are subsumed by the subclass state description;\n" +
+                "  - A carrier class extends another carrier class, but there are one or more\n" +
+                "    superclass components that are not subsumed by the subclass state\n" +
+                "    description.\n" +
+                "</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // Should NOT have code blocks for list continuations
+        assertThat(parsed.bodyMarkdown()).doesNotContain("```\ncomponents are subsumed");
+        assertThat(parsed.bodyMarkdown()).doesNotContain("```\nsuperclass components");
+        // List items should be preserved
+        assertThat(parsed.bodyMarkdown()).contains("- A carrier class extends a non-carrier class;");
+        assertThat(parsed.bodyMarkdown()).contains("components are subsumed");
+    }
 }

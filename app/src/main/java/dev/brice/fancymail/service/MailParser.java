@@ -488,7 +488,169 @@ public class MailParser {
         // Remove excessive blank lines (more than 2 consecutive)
         content = content.replaceAll("\n{3,}", "\n\n");
 
+        // Convert indented code blocks to fenced code blocks
+        content = convertIndentedToFencedCodeBlocks(content);
+
         return content.trim();
+    }
+
+    /**
+     * Convert indented code blocks (4+ space indentation) to fenced code blocks (```).
+     * <p>
+     * This handles:
+     * <ul>
+     *   <li>Regular code blocks (4 space indent)</li>
+     *   <li>Code blocks inside list items (preserves list indentation)</li>
+     *   <li>Code blocks inside blockquotes (preserves > prefix)</li>
+     * </ul>
+     * <p>
+     * Content inside existing fenced code blocks is left untouched.
+     * Indented lines inside list items (continuations) are not converted.
+     */
+    private String convertIndentedToFencedCodeBlocks(String content) {
+        String[] lines = content.split("\n", -1);
+        StringBuilder result = new StringBuilder();
+        StringBuilder codeBlock = new StringBuilder();
+        String codeBlockPrefix = "";  // Prefix for list/blockquote context
+        boolean inIndentedCodeBlock = false;
+        boolean inExistingFencedBlock = false;
+        boolean inListContext = false;
+
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
+            String trimmed = line.trim();
+
+            // Track existing fenced code blocks - don't modify content inside them
+            if (trimmed.startsWith("```")) {
+                inExistingFencedBlock = !inExistingFencedBlock;
+                // If we were building an indented code block, close it first
+                if (inIndentedCodeBlock) {
+                    result.append(codeBlock);
+                    result.append(codeBlockPrefix).append("```\n");
+                    codeBlock.setLength(0);
+                    inIndentedCodeBlock = false;
+                    codeBlockPrefix = "";
+                }
+                result.append(line);
+                if (i < lines.length - 1) {
+                    result.append("\n");
+                }
+                continue;
+            }
+
+            // If inside an existing fenced block, pass through unchanged
+            if (inExistingFencedBlock) {
+                result.append(line);
+                if (i < lines.length - 1) {
+                    result.append("\n");
+                }
+                continue;
+            }
+
+            // Track list context - list items start with - * or number.
+            // We're in a list until we see a blank line or non-indented non-list line
+            boolean isListItem = trimmed.matches("^([-*]|\\d+\\.)\\s.*");
+            if (isListItem) {
+                inListContext = true;
+            } else if (trimmed.isEmpty()) {
+                // Blank line might end list context, but could also be between items
+                // Keep list context if next non-blank line is a list item or indented
+            } else if (!line.startsWith(" ") && !line.startsWith("\t")) {
+                // Non-indented, non-list line ends list context
+                inListContext = false;
+            }
+
+            // Check if this line is an indented code line
+            // Skip if we're in a list context (it's likely a list continuation)
+            IndentedCodeInfo codeInfo = null;
+            if (!inListContext) {
+                codeInfo = getIndentedCodeInfo(line);
+            }
+
+            if (codeInfo != null) {
+                if (!inIndentedCodeBlock) {
+                    // Starting a new code block
+                    inIndentedCodeBlock = true;
+                    codeBlockPrefix = codeInfo.prefix;
+                    // Ensure blank line before code block if previous line wasn't blank
+                    if (result.length() > 0) {
+                        String resultStr = result.toString();
+                        if (!resultStr.endsWith("\n\n") && !resultStr.endsWith("\n")) {
+                            result.append("\n");
+                        }
+                        if (!resultStr.endsWith("\n\n")) {
+                            result.append("\n");
+                        }
+                    }
+                    // Add opening fence with same prefix
+                    result.append(codeBlockPrefix).append("```\n");
+                }
+                // Add code line with prefix but without the code indentation
+                codeBlock.append(codeBlockPrefix).append(codeInfo.code).append("\n");
+            } else {
+                if (inIndentedCodeBlock) {
+                    // Ending code block
+                    result.append(codeBlock);
+                    result.append(codeBlockPrefix).append("```\n");
+                    codeBlock.setLength(0);
+                    inIndentedCodeBlock = false;
+                    codeBlockPrefix = "";
+                }
+                result.append(line);
+                if (i < lines.length - 1) {
+                    result.append("\n");
+                }
+            }
+        }
+
+        // Close any remaining code block
+        if (inIndentedCodeBlock) {
+            result.append(codeBlock);
+            result.append(codeBlockPrefix).append("```");
+        }
+
+        return result.toString();
+    }
+
+    /**
+     * Information about an indented code line.
+     */
+    private record IndentedCodeInfo(String prefix, String code) {}
+
+    /**
+     * Check if a line is an indented code block line and extract its components.
+     * Returns null if not an indented code line.
+     * <p>
+     * Note: Blockquote normalization may add extra spaces, so we strip leading space from code.
+     */
+    private IndentedCodeInfo getIndentedCodeInfo(String line) {
+        // Regular indented code block (4+ spaces)
+        if (line.startsWith("    ")) {
+            return new IndentedCodeInfo("", line.substring(4));
+        }
+
+        // Blockquote with indented code (> + spaces, at least 4 spaces for code block)
+        if (line.startsWith(">")) {
+            // Find where the > prefix ends (including optional space after >)
+            int afterQuote = 1;
+            if (line.length() > 1 && line.charAt(1) == ' ') {
+                afterQuote = 2;
+            }
+            String rest = line.substring(afterQuote);
+            // Need at least 4 spaces for a code block
+            if (rest.startsWith("    ")) {
+                // Strip exactly 4 spaces, then strip any additional leading space
+                // (blockquote normalization may have added extra)
+                String code = rest.substring(4);
+                // Only strip one leading space if present (from normalization)
+                if (code.startsWith(" ") && !code.startsWith("  ")) {
+                    code = code.substring(1);
+                }
+                return new IndentedCodeInfo(line.substring(0, afterQuote), code);
+            }
+        }
+
+        return null;
     }
 
     // Pattern for detecting code-like content
