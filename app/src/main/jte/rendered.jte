@@ -173,6 +173,10 @@
             font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
             font-size: 0.9em;
         }
+        .content pre code {
+            background: transparent;
+            padding: 0;
+        }
         .content :not(pre) > code {
             background: var(--inline-code-bg);
             padding: 2px 6px;
