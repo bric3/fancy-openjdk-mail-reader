@@ -457,10 +457,16 @@ public class MailParser {
         // Convert "----- Original Message -----" to a styled separator
         // Uses Unicode box-drawing characters for a clean titled border look
         // Also handles nested blockquotes like "> ----- Original Message -----"
-        content = content.replaceAll(
-                "(?m)^((?:> ?)*)-{3,}\\s*(Original Message|Forwarded Message)\\s*-{3,}$",
-                "\n$1**───── $2 ─────**\n"
-        );
+        // Don't add leading newline for blockquotes as it breaks continuity
+        Pattern originalMsgPattern = Pattern.compile(
+                "(?m)^((?:> ?)*)-{3,}\\s*(Original Message|Forwarded Message)\\s*-{3,}$");
+        content = originalMsgPattern.matcher(content).replaceAll(match -> {
+            String prefix = match.group(1);
+            String msgType = match.group(2);
+            // Only add leading newline if not in a blockquote
+            String leadingNewline = (prefix == null || prefix.isEmpty()) ? "\n" : "";
+            return leadingNewline + (prefix != null ? prefix : "") + "**───── " + msgType + " ─────**\n";
+        });
 
         // Convert lightly-indented code lines (2-3 spaces) to proper code blocks (4 spaces)
         // This handles cases like "  case Point(0, 0) -> ..." which would otherwise
