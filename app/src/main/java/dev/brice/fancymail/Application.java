@@ -25,7 +25,7 @@ public class Application {
         // Determine the mode based on arguments
         Mode mode = determineMode(args);
         int port = extractPort(args);
-        boolean openBrowser = !hasFlag(args, "--no-open");
+        boolean openBrowser = hasFlag(args, "--open");
 
         switch (mode) {
             case CLI -> {

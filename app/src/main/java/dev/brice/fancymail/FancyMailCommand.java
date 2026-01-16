@@ -46,7 +46,7 @@ public class FancyMailCommand implements Callable<Integer> {
     @Option(names = {"-p", "--port"}, description = "Server port (default: 8080)", defaultValue = "8080")
     private int port;
 
-    @Option(names = {"--open"}, description = "Open browser automatically in server mode", defaultValue = "true")
+    @Option(names = {"--open"}, description = "Open browser automatically in server mode")
     private boolean openBrowser;
 
     @Inject
