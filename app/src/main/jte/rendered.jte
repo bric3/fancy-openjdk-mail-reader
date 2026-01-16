@@ -21,9 +21,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${title} - Fancy Mail</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
+        :root {
+            --bg-page: #f5f5f5;
+            --bg-container: white;
+            --container-shadow: rgba(0, 0, 0, 0.1);
+            --text-primary: #333;
+            --text-secondary: #666;
+            --text-heading: #222;
+            --accent: #667eea;
+            --accent-light: rgba(102, 126, 234, 0.2);
+            --border-color: #e0e0e0;
+            --card-bg: #f8f9fa;
+            --code-bg: #f6f8fa;
+            --code-border: #e1e4e8;
+            --inline-code-bg: #f0f0f0;
+            --blockquote-border: #9ca3af;
+            --action-bg: #f0f0f0;
+            --action-hover: #e0e0e0;
+            --disabled-color: #999;
+            --error-bg: #fee;
+            --error-border: #fcc;
+            --error-text: #c00;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-page: #121212;
+                --bg-container: #1e1e2e;
+                --container-shadow: rgba(0, 0, 0, 0.4);
+                --text-primary: #e0e0e0;
+                --text-secondary: #a0a0a0;
+                --text-heading: #f0f0f0;
+                --accent: #8b9fef;
+                --accent-light: rgba(139, 159, 239, 0.2);
+                --border-color: #3a3a4a;
+                --card-bg: #2a2a3a;
+                --code-bg: #2d2d3d;
+                --code-border: #3a3a4a;
+                --inline-code-bg: #3a3a4a;
+                --blockquote-border: #6b7280;
+                --action-bg: #2a2a3a;
+                --action-hover: #3a3a4a;
+                --disabled-color: #666;
+                --error-bg: #3d1f1f;
+                --error-border: #5c2a2a;
+                --error-text: #ff6b6b;
+            }
+        }
         * {
             box-sizing: border-box;
         }
@@ -32,8 +79,9 @@
             max-width: 900px;
             margin: 0 auto;
             padding: 40px 20px;
-            background: #f5f5f5;
+            background: var(--bg-page);
             line-height: 1.6;
+            color: var(--text-primary);
         }
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -52,19 +100,19 @@
             text-decoration: underline;
         }
         .container {
-            background: white;
+            background: var(--bg-container);
             border-radius: 16px;
             padding: 40px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 20px var(--container-shadow);
         }
         h1 {
             margin: 0 0 20px 0;
-            color: #333;
+            color: var(--text-heading);
             font-size: 1.8em;
             line-height: 1.3;
         }
         .meta {
-            background: #f8f9fa;
+            background: var(--card-bg);
             padding: 15px 20px;
             border-radius: 8px;
             margin-bottom: 30px;
@@ -75,13 +123,13 @@
         }
         .meta-label {
             font-weight: 600;
-            color: #666;
+            color: var(--text-secondary);
         }
         .meta-value {
-            color: #333;
+            color: var(--text-primary);
         }
         .meta a {
-            color: #667eea;
+            color: var(--accent);
             text-decoration: none;
         }
         .meta a:hover {
@@ -89,18 +137,18 @@
         }
         hr {
             border: none;
-            border-top: 1px solid #e0e0e0;
+            border-top: 1px solid var(--border-color);
             margin: 30px 0;
         }
         .content {
-            color: #333;
+            color: var(--text-primary);
         }
         .content h1, .content h2, .content h3, .content h4 {
             margin-top: 1.5em;
             margin-bottom: 0.5em;
-            color: #222;
+            color: var(--text-heading);
         }
-        .content h1 { font-size: 1.6em; border-bottom: 2px solid #667eea; padding-bottom: 0.3em; }
+        .content h1 { font-size: 1.6em; border-bottom: 2px solid var(--accent); padding-bottom: 0.3em; }
         .content h2 { font-size: 1.4em; }
         .content h3 { font-size: 1.2em; }
         .content p {
@@ -114,8 +162,8 @@
             margin: 0.5em 0;
         }
         .content pre {
-            background: #f6f8fa;
-            border: 1px solid #e1e4e8;
+            background: var(--code-bg);
+            border: 1px solid var(--code-border);
             border-radius: 8px;
             padding: 16px;
             overflow-x: auto;
@@ -126,38 +174,38 @@
             font-size: 0.9em;
         }
         .content :not(pre) > code {
-            background: #f0f0f0;
+            background: var(--inline-code-bg);
             padding: 2px 6px;
             border-radius: 4px;
         }
         .content a {
-            color: #667eea;
+            color: var(--accent);
             text-decoration: none;
         }
         .content a:hover {
             text-decoration: underline;
         }
         .content blockquote {
-            border-left: 4px solid #9ca3af;
+            border-left: 4px solid var(--blockquote-border);
             margin: 1em 0;
             padding: 0.5em 1em;
-            background: #f8f9fa;
-            color: #666;
+            background: var(--card-bg);
+            color: var(--text-secondary);
         }
         .footer {
             margin-top: 40px;
             padding-top: 20px;
-            border-top: 1px solid #e0e0e0;
+            border-top: 1px solid var(--border-color);
             font-size: 0.9em;
-            color: #666;
+            color: var(--text-secondary);
         }
         .footer a {
-            color: #667eea;
+            color: var(--accent);
         }
         .error {
-            background: #fee;
-            border: 1px solid #fcc;
-            color: #c00;
+            background: var(--error-bg);
+            border: 1px solid var(--error-border);
+            color: var(--error-text);
             padding: 20px;
             border-radius: 8px;
             margin: 20px 0;
@@ -169,17 +217,17 @@
         }
         .actions a {
             padding: 8px 16px;
-            background: #f0f0f0;
+            background: var(--action-bg);
             border-radius: 6px;
-            color: #666;
+            color: var(--text-secondary);
             text-decoration: none;
             font-size: 0.9em;
         }
         .actions a:hover {
-            background: #e0e0e0;
+            background: var(--action-hover);
         }
         .nav-section {
-            background: #f8f9fa;
+            background: var(--card-bg);
             border-radius: 8px;
             padding: 12px 16px;
             margin: 20px 0;
@@ -195,30 +243,30 @@
             justify-content: space-between;
             gap: 20px;
             padding-bottom: 10px;
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 1px solid var(--border-color);
         }
         .nav-indexes {
             display: flex;
             justify-content: center;
             gap: 8px;
-            color: #666;
+            color: var(--text-secondary);
         }
         .nav-link {
-            color: #667eea;
+            color: var(--accent);
             text-decoration: none;
         }
         .nav-link:hover {
             text-decoration: underline;
         }
         .nav-link.disabled {
-            color: #999;
+            color: var(--disabled-color);
             cursor: default;
         }
         .nav-link.disabled:hover {
             text-decoration: none;
         }
         .nav-indexes a {
-            color: #667eea;
+            color: var(--accent);
             text-decoration: none;
         }
         .nav-indexes a:hover {

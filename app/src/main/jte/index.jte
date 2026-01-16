@@ -17,6 +17,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${title}</title>
     <style>
+        :root {
+            --bg-gradient-start: #667eea;
+            --bg-gradient-end: #764ba2;
+            --container-bg: white;
+            --container-shadow: rgba(0, 0, 0, 0.3);
+            --text-primary: #333;
+            --text-secondary: #666;
+            --text-label: #444;
+            --input-border: #e0e0e0;
+            --input-bg: white;
+            --accent: #667eea;
+            --accent-shadow: rgba(102, 126, 234, 0.2);
+            --card-bg: #f8f9fa;
+            --code-bg: #e9ecef;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-gradient-start: #1a1a2e;
+                --bg-gradient-end: #16213e;
+                --container-bg: #1e1e2e;
+                --container-shadow: rgba(0, 0, 0, 0.5);
+                --text-primary: #e0e0e0;
+                --text-secondary: #a0a0a0;
+                --text-label: #c0c0c0;
+                --input-border: #3a3a4a;
+                --input-bg: #2a2a3a;
+                --accent: #8b9fef;
+                --accent-shadow: rgba(139, 159, 239, 0.3);
+                --card-bg: #2a2a3a;
+                --code-bg: #3a3a4a;
+            }
+        }
         * {
             box-sizing: border-box;
         }
@@ -25,22 +57,22 @@
             max-width: 800px;
             margin: 0 auto;
             padding: 40px 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
             min-height: 100vh;
         }
         .container {
-            background: white;
+            background: var(--container-bg);
             border-radius: 16px;
             padding: 40px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 20px 60px var(--container-shadow);
         }
         h1 {
             margin: 0 0 10px 0;
-            color: #333;
+            color: var(--text-primary);
             font-size: 2em;
         }
         .subtitle {
-            color: #666;
+            color: var(--text-secondary);
             margin-bottom: 30px;
             font-size: 1.1em;
         }
@@ -51,19 +83,21 @@
         }
         label {
             font-weight: 600;
-            color: #444;
+            color: var(--text-label);
         }
         input[type="url"] {
             padding: 15px;
             font-size: 16px;
-            border: 2px solid #e0e0e0;
+            border: 2px solid var(--input-border);
             border-radius: 8px;
+            background: var(--input-bg);
+            color: var(--text-primary);
             transition: border-color 0.2s, box-shadow 0.2s;
         }
         input[type="url"]:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-shadow);
         }
         button {
             padding: 15px 30px;
@@ -86,23 +120,24 @@
         .example {
             margin-top: 30px;
             padding: 20px;
-            background: #f8f9fa;
+            background: var(--card-bg);
             border-radius: 8px;
             font-size: 0.9em;
         }
         .example h3 {
             margin: 0 0 10px 0;
-            color: #666;
+            color: var(--text-secondary);
             font-size: 0.9em;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
         .example code {
-            background: #e9ecef;
+            background: var(--code-bg);
             padding: 2px 6px;
             border-radius: 4px;
             font-family: 'SF Mono', Monaco, monospace;
             word-break: break-all;
+            color: var(--text-primary);
         }
         .features {
             margin-top: 30px;
@@ -112,16 +147,16 @@
         }
         .feature {
             padding: 15px;
-            background: #f8f9fa;
+            background: var(--card-bg);
             border-radius: 8px;
         }
         .feature h4 {
             margin: 0 0 5px 0;
-            color: #667eea;
+            color: var(--accent);
         }
         .feature p {
             margin: 0;
-            color: #666;
+            color: var(--text-secondary);
             font-size: 0.9em;
         }
     </style>
