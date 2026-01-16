@@ -517,4 +517,110 @@ class MailParserTest {
         // The orphan line should be joined
         assertThat(parsed.bodyMarkdown()).contains("that continues here");
     }
+
+    @Test
+    void parse_pipermailWrappedLines_joinsOrphanFragments() {
+        // Pipermail wraps at ~72 chars, pushing short fragments to the next line
+        // These orphan fragments should be joined back
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>\n" +
+                "One might think that we would need some marking on the `x` and `y` \n" +
+                "components of\n" +
+                "`Point3d` to indicate that they map to the corresponding components of \n" +
+                "`Point`,\n" +
+                "as we did for associating component fields with their corresponding \n" +
+                "components.\n" +
+                "But in this case, we need no such marking, because there is no way that \n" +
+                "an `int\n" +
+                "x` component of `Point` and an `int x` component of its subclass could \n" +
+                "possibly\n" +
+                "refer to different things -- since they both are tied to the same `int x()`\n" +
+                "accessor methods.  So we can safely infer which subclass components are \n" +
+                "managed\n" +
+                "by superclasses, just by matching up their names and types.\n" +
+                "</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // Orphan fragments should be joined with their previous lines
+        assertThat(parsed.bodyMarkdown())
+                .contains("`y` components of")
+                .contains("components of `Point`,")
+                .contains("corresponding components.")
+                .contains("way that an `int")
+                .contains("could possibly")
+                .contains("are managed");
+        // Should NOT have orphans on their own lines
+        assertThat(parsed.bodyMarkdown())
+                .doesNotContain("`y` \ncomponents")
+                .doesNotContain("of \n`Point`");
+    }
+
+    @Test
+    void parse_pipermailWrappedLines_doesNotJoinSignatures() {
+        // Signature patterns should not be joined
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>\n" +
+                "This is some message content that explains something important.\n" +
+                "\n" +
+                "regards,\n" +
+                "Rémi\n" +
+                "</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // Signature should remain on separate lines
+        assertThat(parsed.bodyMarkdown()).contains("regards,");
+        assertThat(parsed.bodyMarkdown()).doesNotContain("regards, Rémi");
+    }
+
+    @Test
+    void parse_pipermailWrappedLines_doesNotJoinParagraphFlow() {
+        // Multiple consecutive long lines (paragraph flow) should not be joined
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>\n" +
+                "starting values, the block can mutate those variables as desired, and upon\n" +
+                "normal completion of the block, those variables are passed to a canonical\n" +
+                "constructor to produce the final result.  The main difference is where the\n" +
+                "starting values come from.\n" +
+                "</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // Lines should remain separate (they're all long, intentional paragraph flow)
+        // The markdown renderer will merge them into a paragraph anyway
+        assertThat(parsed.bodyMarkdown()).contains("and upon\nnormal");
+        assertThat(parsed.bodyMarkdown()).contains("canonical\nconstructor");
+    }
+
+    @Test
+    void parse_pipermailWrappedLines_doesNotJoinFencedCodeBlockMarkers() {
+        // Fenced code block markers (```) should not be joined with previous line
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>\n" +
+                "```\n" +
+                "public sealed interface Pair&lt;T,U&gt;(T first, U second) { }\n" +
+                "\n" +
+                "private record PairImpl&lt;T, U&gt;(T first, U second) implements Pair&lt;T, U&gt; { }\n" +
+                "```\n" +
+                "</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // The closing ``` should be on its own line, not joined
+        assertThat(parsed.bodyMarkdown()).contains("{ }\n```");
+        assertThat(parsed.bodyMarkdown()).doesNotContain("{ } ```");
+    }
 }

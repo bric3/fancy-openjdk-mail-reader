@@ -466,7 +466,11 @@ public class MailParser {
         // be merged into the paragraph above
         content = convertLightlyIndentedCodeToBlocks(content);
 
-        // Fix orphan continuation lines from email wrapping
+        // Join lines that were artificially wrapped by pipermail's line length limit
+        // This handles orphan short fragments that got pushed to the next line
+        content = joinPipermailWrappedLines(content);
+
+        // Fix orphan continuation lines from email wrapping in code blocks and lists
         // When email wrapping breaks a line mid-code-block, the continuation starts at column 0,
         // which prematurely terminates the code block. Re-indent single orphan lines.
         content = fixOrphanContinuationLines(content);
@@ -550,6 +554,119 @@ public class MailParser {
      */
     private boolean looksLikeCode(String line) {
         return CODE_PATTERN.matcher(line).find();
+    }
+
+    // Maximum length for an orphan fragment (short word/phrase pushed to next line)
+    private static final int MAX_ORPHAN_LENGTH = 15;
+    // Minimum length for a "long" line that likely hit the wrap limit
+    private static final int MIN_LONG_LINE_LENGTH = 65;
+    // Pattern for signature/greeting lines that should not be joined
+    private static final Pattern SIGNATURE_PATTERN = Pattern.compile(
+            "(?i).*(regards|cheers|thanks|thank you|best|sincerely|cordialement|greetings),?\\s*$");
+
+    /**
+     * Join lines that were artificially wrapped by pipermail's line length limit.
+     * <p>
+     * Pipermail wraps long lines at ~72-76 characters. When a word would exceed the limit,
+     * it gets pushed to the next line, creating short "orphan" fragments. For example:
+     * <pre>
+     * One might think that we would need some marking on the `x` and `y`
+     * components of
+     * `Point3d` to indicate that they map to the corresponding components of
+     * `Point`,
+     * </pre>
+     * becomes:
+     * <pre>
+     * One might think that we would need some marking on the `x` and `y` components of
+     * `Point3d` to indicate that they map to the corresponding components of `Point`,
+     * </pre>
+     * <p>
+     * The heuristic:
+     * <ul>
+     *   <li>Previous line is LONG (likely hit the wrap limit, > 65 chars)</li>
+     *   <li>Current line starts at column 0 (no indentation)</li>
+     *   <li>Current line is SHORT (orphan fragment, ≤ 15 chars)</li>
+     *   <li>Not a signature pattern (e.g., "regards," followed by name)</li>
+     * </ul>
+     */
+    private String joinPipermailWrappedLines(String content) {
+        String[] lines = content.split("\n", -1);
+        StringBuilder result = new StringBuilder();
+
+        int i = 0;
+        while (i < lines.length) {
+            String line = lines[i];
+            result.append(line);
+
+            // Look ahead for orphan lines to join
+            while (i + 1 < lines.length) {
+                String currentLine = lines[i];
+                String nextLine = lines[i + 1];
+
+                if (isOrphanWrappedLine(currentLine, nextLine)) {
+                    // Remove trailing whitespace and join with single space
+                    while (result.length() > 0 && Character.isWhitespace(result.charAt(result.length() - 1))) {
+                        result.setLength(result.length() - 1);
+                    }
+                    result.append(" ").append(nextLine.trim());
+                    // Update lines[i] for next iteration check (in case of multiple orphans)
+                    lines[i] = lines[i].stripTrailing() + " " + nextLine.trim();
+                    i++;
+                } else {
+                    break;
+                }
+            }
+
+            if (i < lines.length - 1) {
+                result.append("\n");
+            }
+            i++;
+        }
+
+        return result.toString();
+    }
+
+    /**
+     * Check if a line is an orphan fragment from pipermail line wrapping.
+     */
+    private boolean isOrphanWrappedLine(String prevLine, String line) {
+        // Not an orphan if empty
+        if (line.isEmpty()) {
+            return false;
+        }
+
+        // Not an orphan if it starts with whitespace (indented content)
+        if (Character.isWhitespace(line.charAt(0))) {
+            return false;
+        }
+
+        // Not an orphan if it starts with > (blockquote)
+        if (line.startsWith(">")) {
+            return false;
+        }
+
+        // Not an orphan if it's a fenced code block marker
+        if (line.startsWith("```")) {
+            return false;
+        }
+
+        // Not an orphan if it's too long (it's a full line, not a fragment)
+        if (line.length() > MAX_ORPHAN_LENGTH) {
+            return false;
+        }
+
+        // Not an orphan if previous line is short (intentional line break)
+        String prevTrimmed = prevLine.stripTrailing();
+        if (prevTrimmed.length() < MIN_LONG_LINE_LENGTH) {
+            return false;
+        }
+
+        // Not an orphan if previous line looks like a signature/greeting
+        if (SIGNATURE_PATTERN.matcher(prevTrimmed).matches()) {
+            return false;
+        }
+
+        return true;
     }
 
     // Pattern to extract leading indentation (spaces or blockquote prefix "> " followed by spaces)
