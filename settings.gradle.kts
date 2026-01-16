@@ -18,5 +18,5 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
-rootProject.name = "fancy-mail-openjdk-reader"
+rootProject.name = "fancy-openjdk-mail-reader"
 include("app")
