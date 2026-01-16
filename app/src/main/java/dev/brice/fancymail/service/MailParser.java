@@ -456,9 +456,10 @@ public class MailParser {
 
         // Convert "----- Original Message -----" to a styled separator
         // Uses Unicode box-drawing characters for a clean titled border look
+        // Also handles nested blockquotes like "> ----- Original Message -----"
         content = content.replaceAll(
-                "(?m)^-{3,}\\s*(Original Message|Forwarded Message)\\s*-{3,}$",
-                "\n**── $1 ──**\n"
+                "(?m)^((?:> ?)*)-{3,}\\s*(Original Message|Forwarded Message)\\s*-{3,}$",
+                "\n$1**───── $2 ─────**\n"
         );
 
         // Convert lightly-indented code lines (2-3 spaces) to proper code blocks (4 spaces)

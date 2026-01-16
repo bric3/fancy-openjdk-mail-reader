@@ -414,9 +414,31 @@ class MailParserTest {
         ParsedMail parsed = parser.parse(html, mailPath);
 
         // Should have bold "Original Message" with Unicode line characters
-        assertThat(parsed.bodyHtml()).contains("<strong>── Original Message ──</strong>");
+        assertThat(parsed.bodyHtml()).contains("<strong>───── Original Message ─────</strong>");
         // Should not have the dashes
         assertThat(parsed.bodyHtml()).doesNotContain("-----");
+    }
+
+    @Test
+    void parse_originalMessageInNestedBlockquote_rendersAsStyledSeparator() {
+        // "----- Original Message -----" inside blockquotes should also be styled
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>Here is my reply.\n" +
+                "\n" +
+                "&gt; Some quoted text\n" +
+                "&gt;\n" +
+                "&gt;&gt; ----- Original Message -----\n" +
+                "&gt;&gt; The deeply nested original content.</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // Should have bold "Original Message" in blockquote context
+        assertThat(parsed.bodyMarkdown()).contains("**───── Original Message ─────**");
+        // Should not have the dashes in the output
+        assertThat(parsed.bodyMarkdown()).doesNotContain("----- Original Message -----");
     }
 
     @Test

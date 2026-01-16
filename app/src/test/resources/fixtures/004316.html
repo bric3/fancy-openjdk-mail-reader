@@ -1,0 +1,260 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Amber features 2026
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:amber-spec-experts%40openjdk.org?Subject=Re%3A%20Amber%20features%202026&In-Reply-To=%3CCAE%2B3fja0xhRbXZ4FNxuDX_e32Ghj3nv-usFA0ro-8mAskOw8_w%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="004311.html">
+   <LINK REL="Next"  HREF="004312.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Amber features 2026</H1>
+    <B>Tagir Valeev</B> 
+    <A HREF="mailto:amber-spec-experts%40openjdk.org?Subject=Re%3A%20Amber%20features%202026&In-Reply-To=%3CCAE%2B3fja0xhRbXZ4FNxuDX_e32Ghj3nv-usFA0ro-8mAskOw8_w%40mail.gmail.com%3E"
+       TITLE="Amber features 2026">amaembo at gmail.com
+       </A><BR>
+    <I>Wed Jan 14 21:05:21 UTC 2026</I>
+    <P><UL>
+        <LI>Previous message (by thread): <A HREF="004311.html">Amber features 2026
+</A></li>
+        <LI>Next message (by thread): <A HREF="004312.html">Amber features 2026
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#4316">[ date ]</a>
+              <a href="thread.html#4316">[ thread ]</a>
+              <a href="subject.html#4316">[ subject ]</a>
+              <a href="author.html#4316">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi!
+
+On Wed, Jan 14, 2026, 20:50 &lt;<A HREF="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">forax at univ-mlv.fr</A>&gt; wrote
+
+&gt;<i> Is it different from
+</I>&gt;<i>   var a = foo().bar().getA();
+</I>&gt;<i>   var b = foo().bar().getB();
+</I>&gt;<i>
+</I>&gt;<i> which works like a charm in IntelliJ.
+</I>&gt;<i>
+</I>
+Here, if you search for getA invocation, you can query the identifier index
+for 'getA', which is mentioned. If you want to search for the type of a,
+then this location will not be found, because the type is not mentioned.
+Find usages is crucial for refactorings. If you rename the type, you don't
+need to find this location, because the type is not mentioned. However, if
+you reorder record components, you have to find all the deconstructions to
+update them as well, even if the record is not mentioned. Similarly, if you
+change the signature of functional interface SAM, you have to update all
+the lambdas, so you have to find them.
+
+
+
+
+&gt;<i> That said, I curently do not use 'var' in record patterns because IDEs
+</I>&gt;<i> (not IntelliJ) tend to miss those type references.
+</I>&gt;<i>
+</I>&gt;<i> In IntelliJ, you can add a lambda symbol in the gutter part of the editor,
+</I>&gt;<i> it will give you the functional interface.
+</I>&gt;<i>
+</I>
+Going from lambda to its functional interface is much simpler than the
+opposite task of finding all the lambdas in the project that implement this
+interface. While it's still a nontrivial type inference problem, it should
+be performed at a single location, not at thousands of possible locations
+all over the project.
+
+
+&gt;<i> So yes, relying on type inference makes compilers slower and the IDEs
+</I>&gt;<i> slower, and reconciling indexes is a PITA,
+</I>&gt;<i> but suppressing redundant information in the code, for example
+</I>&gt;<i>   (var x, var y) = foo.getPoint();
+</I>&gt;<i>
+</I>&gt;<i> also helps readability (see
+</I>&gt;<i> <A HREF="https://openjdk.org/projects/amber/guides/lvti-style-guide">https://openjdk.org/projects/amber/guides/lvti-style-guide</A>)
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> With best regards,
+</I>&gt;<i> Tagir Valeev
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> regards,
+</I>&gt;<i> R&#233;mi
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> On Wed, Jan 14, 2026, 19:17 Remi Forax &lt;<A HREF="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">forax at univ-mlv.fr</A>&gt; wrote:
+</I>&gt;<i>
+</I>&gt;&gt;<i> ----- Original Message -----
+</I>&gt;&gt;<i> &gt; From: &quot;Gavin Bierman&quot; &lt;<A HREF="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">gavin.bierman at oracle.com</A>&gt;
+</I>&gt;&gt;<i> &gt; To: &quot;amber-spec-experts&quot; &lt;<A HREF="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">amber-spec-experts at openjdk.java.net</A>&gt;
+</I>&gt;&gt;<i> &gt; Sent: Saturday, January 10, 2026 12:08:05 AM
+</I>&gt;&gt;<i> &gt; Subject: Amber features 2026
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> &gt; Dear spec experts,
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i> &gt; Happy New Year to you all! We thought this was a good time to share you
+</I>&gt;&gt;<i> some of
+</I>&gt;&gt;<i> &gt; the thinking regarding Amber features for 2026.
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i> &gt; Currently we have one feature in preview - Primitive Patterns. We&#8217;d
+</I>&gt;&gt;<i> love to get
+</I>&gt;&gt;<i> &gt; more feedback on this feature - please keep kicking the tires!
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i> &gt; We plan two new features in the near term. Draft JEPs are being worked
+</I>&gt;&gt;<i> on and
+</I>&gt;&gt;<i> &gt; will be released as soon as possible. But here are some brief details
+</I>&gt;&gt;<i> while you
+</I>&gt;&gt;<i> &gt; are waiting for the draft JEPs (in the name of efficiency, *please*
+</I>&gt;&gt;<i> let's save
+</I>&gt;&gt;<i> &gt; discussion for that point).
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i> &gt; ## PATTERN ASSIGNMENT
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i> &gt; Pattern matching is an inherently partial process: a value either
+</I>&gt;&gt;<i> matches a
+</I>&gt;&gt;<i> &gt; pattern, or it does not. But sometimes, we know that the pattern will
+</I>&gt;&gt;<i> always
+</I>&gt;&gt;<i> &gt; match; and we are using the pattern matching process as a convenient
+</I>&gt;&gt;<i> means to
+</I>&gt;&gt;<i> &gt; disassemble a value, for example:
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i> &gt;    record ColorPoint(int x, int y, RGB color) {}
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i> &gt;    void somethingImportant(ColorPoint cp) {
+</I>&gt;&gt;<i> &gt;        if (cp instanceof ColorPoint(var x, var y, var c)) {
+</I>&gt;&gt;<i> &gt;            // important code
+</I>&gt;&gt;<i> &gt;        }
+</I>&gt;&gt;<i> &gt;    }
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i> &gt; The use of pattern matching is great, but the fact that we have to use
+</I>&gt;&gt;<i> it in a
+</I>&gt;&gt;<i> &gt; conditional statement is annoying. It&#8217;s clutter, and worse, it is making
+</I>&gt;&gt;<i> &gt; something known by the developer and compiler look as if it were
+</I>&gt;&gt;<i> unknown; and,
+</I>&gt;&gt;<i> &gt; as a consequence, the important code ends up being indented and the
+</I>&gt;&gt;<i> scope of
+</I>&gt;&gt;<i> &gt; the pattern variables is limited to the then block. The indent-adverse
+</I>&gt;&gt;<i> &gt; developer may reach for the following, but it&#8217;s hardly better:
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i> &gt;    void somethingImportant(ColorPoint cp) {
+</I>&gt;&gt;<i> &gt;        if (!(cp instanceof ColorPoint(var x, var y, var c))) {
+</I>&gt;&gt;<i> &gt;            return;
+</I>&gt;&gt;<i> &gt;        }
+</I>&gt;&gt;<i> &gt;        // important code
+</I>&gt;&gt;<i> &gt;    }
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i> &gt; The real issue here is that both the developer and the compiler can see
+</I>&gt;&gt;<i> that the
+</I>&gt;&gt;<i> &gt; pattern matching is not partial - it will always succeed - but we have
+</I>&gt;&gt;<i> no way
+</I>&gt;&gt;<i> &gt; of recording this semantic information.
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i> &gt; What we really want is a form of assignment where the left-hand-side is
+</I>&gt;&gt;<i> not a
+</I>&gt;&gt;<i> &gt; variable but a **pattern**. So, we can rewrite our method as follows:
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i> &gt;    void somethingImportant(ColorPoint cp) {
+</I>&gt;&gt;<i> &gt;        ColorPoint(var x, var y, var c) = cp;    // Pattern Assignment!
+</I>&gt;&gt;<i> &gt;        // important code
+</I>&gt;&gt;<i> &gt;    }
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i> &gt; Luckily, the spec already defines what it means for a pattern to be
+</I>&gt;&gt;<i> &gt; unconditional (JLS 14.30.3), so we can build on this
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i> &gt;    void hopeful(Object o) {
+</I>&gt;&gt;<i> &gt;        ColorPoint(var x, var y, var c) = o; // Compile-time error!
+</I>&gt;&gt;<i> &gt;    }
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Doing the advent of code of last December, I miss that feature :)
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> But I'm still ambivalent about that feature, for me, it looks like we are
+</I>&gt;&gt;<i> missing the big picture.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Every time i've talked about this feature in JUGs, one of the questions
+</I>&gt;&gt;<i> was why do we need to indicate the type given that the compiler knows it.
+</I>&gt;&gt;<i> For example
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>   void hopeful(ColorPoint cp) {
+</I>&gt;&gt;<i>     (var x, var y, var c) = cp;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>     // instead of
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>     ColorPoint(var x, var y, var c) = cp;
+</I>&gt;&gt;<i>   }
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I wonder if the general question hidden behind is why is it a pattern
+</I>&gt;&gt;<i> assignment and not a de-structuration like in other languages.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Let's take another example, in other languages, one can write swap like
+</I>&gt;&gt;<i> this
+</I>&gt;&gt;<i>   int a = ...
+</I>&gt;&gt;<i>   int b = ...
+</I>&gt;&gt;<i>   (b, a) = (a, b);
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> The equivalent would be
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>   record Pair(int first, int second) {}
+</I>&gt;&gt;<i>   int a = ...
+</I>&gt;&gt;<i>   int b = ...
+</I>&gt;&gt;<i>   Pair(var x, var y) = new Pair(a, b);
+</I>&gt;&gt;<i>   a = x;
+</I>&gt;&gt;<i>   b = y;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Or should we support assignment without the creation of new bindings ?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>   record Pair(int first, int second) {}
+</I>&gt;&gt;<i>   int a = ...
+</I>&gt;&gt;<i>   int b = ...
+</I>&gt;&gt;<i>   Pair(b, a) = new Pair(a, b);
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Or maybe, this feature should be named pattern declaration and not
+</I>&gt;&gt;<i> pattern assignment ?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> For me, this feature is about de-structuring assignment but by seeing
+</I>&gt;&gt;<i> through the keyhole of patterns, i'm fearing we are missing the big picture
+</I>&gt;&gt;<i> here.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> regards,
+</I>&gt;&gt;<i> R&#233;mi
+</I>&gt;&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="https://mail.openjdk.org/pipermail/amber-spec-experts/attachments/20260114/44fb322b/attachment.htm">https://mail.openjdk.org/pipermail/amber-spec-experts/attachments/20260114/44fb322b/attachment.htm</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message (by thread): <A HREF="004311.html">Amber features 2026
+</A></li>
+	<LI>Next message (by thread): <A HREF="004312.html">Amber features 2026
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#4316">[ date ]</a>
+              <a href="thread.html#4316">[ thread ]</a>
+              <a href="subject.html#4316">[ subject ]</a>
+              <a href="author.html#4316">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">More information about the amber-spec-experts
+mailing list</a><br>
+<script type="text/javascript"  src="/bslIXVG_a/etJkOM/3rw/S1OpbhfpL5VX2mr13E/DVxdSAE/AwcCRHos/OCoB"></script></body></html>
