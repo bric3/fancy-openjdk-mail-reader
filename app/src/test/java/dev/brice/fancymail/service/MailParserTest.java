@@ -371,4 +371,24 @@ class MailParserTest {
         // The markdown will be rendered as a single paragraph
         assertThat(parsed.bodyMarkdown()).doesNotContain("  \n");
     }
+
+    @Test
+    void parse_originalMessageSeparator_rendersAsStyledSeparator() {
+        // "----- Original Message -----" should be converted to styled separator
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>Here is my reply.\n" +
+                "\n" +
+                "----- Original Message -----\n" +
+                "The original content here.</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // Should have bold "Original Message" with Unicode line characters
+        assertThat(parsed.bodyHtml()).contains("<strong>── Original Message ──</strong>");
+        // Should not have the dashes
+        assertThat(parsed.bodyHtml()).doesNotContain("-----");
+    }
 }

@@ -361,6 +361,13 @@ public class MailParser {
         // Remove attachment notices (lines starting with "-------------- next part")
         content = content.replaceAll("(?m)^-{10,} next part.*(?:\\r?\\n.*)*$", "");
 
+        // Convert "----- Original Message -----" to a styled separator
+        // Uses Unicode box-drawing characters for a clean titled border look
+        content = content.replaceAll(
+                "(?m)^-{3,}\\s*(Original Message|Forwarded Message)\\s*-{3,}$",
+                "\n**── $1 ──**\n"
+        );
+
         // Convert lightly-indented code lines (2-3 spaces) to proper code blocks (4 spaces)
         // This handles cases like "  case Point(0, 0) -> ..." which would otherwise
         // be merged into the paragraph above

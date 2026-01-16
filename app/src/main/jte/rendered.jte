@@ -136,7 +136,7 @@
             text-decoration: underline;
         }
         .content blockquote {
-            border-left: 4px solid #667eea;
+            border-left: 4px solid #9ca3af;
             margin: 1em 0;
             padding: 0.5em 1em;
             background: #f8f9fa;
