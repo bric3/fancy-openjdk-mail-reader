@@ -9,6 +9,7 @@
  */
 package dev.brice.fancymail;
 
+import dev.brice.fancymail.model.MailPath;
 import io.micronaut.configuration.picocli.PicocliRunner;
 import io.micronaut.runtime.Micronaut;
 
@@ -36,14 +37,26 @@ public class Application {
                 // Server mode - start Micronaut HTTP server
                 System.setProperty("micronaut.server.port", String.valueOf(port));
 
+                // Determine the URL to open
+                String browserUrl = "http://localhost:" + port;
+                String mailUrl = extractValue(args, "-u", "--url");
+                if (mailUrl != null) {
+                    try {
+                        MailPath mailPath = MailPath.fromUrl(mailUrl);
+                        browserUrl = "http://localhost:" + port + mailPath.toRenderedPath();
+                    } catch (IllegalArgumentException e) {
+                        System.err.println("Warning: Could not parse URL, opening home page: " + e.getMessage());
+                    }
+                }
+
                 // Open browser after a delay
                 if (openBrowser && Desktop.isDesktopSupported()) {
-                    final int finalPort = port;
+                    final String urlToOpen = browserUrl;
                     new Thread(() -> {
                         try {
                             Thread.sleep(2500);
-                            System.out.println("Opening browser at http://localhost:" + finalPort);
-                            Desktop.getDesktop().browse(URI.create("http://localhost:" + finalPort));
+                            System.out.println("Opening browser at " + urlToOpen);
+                            Desktop.getDesktop().browse(URI.create(urlToOpen));
                         } catch (Exception e) {
                             System.err.println("Could not open browser: " + e.getMessage());
                         }
@@ -58,14 +71,19 @@ public class Application {
     private enum Mode { CLI, SERVER }
 
     private static Mode determineMode(String[] args) {
-        // CLI mode triggers
+        // Explicit server mode
+        if (hasFlag(args, "-s", "--server")) {
+            return Mode.SERVER;
+        }
+
+        // CLI mode triggers (only if not server mode)
         if (hasFlag(args, "-u", "--url") ||
             hasFlag(args, "-h", "--help") ||
             hasFlag(args, "-V", "--version")) {
             return Mode.CLI;
         }
 
-        // Server mode if --server flag or no relevant args
+        // Default to server mode if no relevant args
         return Mode.SERVER;
     }
 
@@ -81,14 +99,24 @@ public class Application {
     }
 
     private static int extractPort(String[] args) {
-        for (int i = 0; i < args.length - 1; i++) {
-            if (args[i].equals("-p") || args[i].equals("--port")) {
-                try {
-                    return Integer.parseInt(args[i + 1]);
-                } catch (NumberFormatException ignored) {
-                }
+        String value = extractValue(args, "-p", "--port");
+        if (value != null) {
+            try {
+                return Integer.parseInt(value);
+            } catch (NumberFormatException ignored) {
             }
         }
         return 8080;
+    }
+
+    private static String extractValue(String[] args, String... flags) {
+        for (int i = 0; i < args.length - 1; i++) {
+            for (String flag : flags) {
+                if (args[i].equals(flag)) {
+                    return args[i + 1];
+                }
+            }
+        }
+        return null;
     }
 }
