@@ -201,4 +201,123 @@ class MailParserTest {
                 .doesNotContain("date.html")
                 .doesNotContain("thread.html");
     }
+
+    @Test
+    void parse_pipermailItalicTags_strippedFromBlockquotes() {
+        // Pipermail uses <i>...</I> tags to italicize quoted content
+        String html = """
+                <!DOCTYPE HTML>
+                <HTML>
+                <HEAD><TITLE>Test</TITLE></HEAD>
+                <BODY>
+                <H1>Test</H1>
+                <PRE>&gt;<i> This is quoted text
+                </I>&gt;<i> More quoted text
+                </I>
+                Reply text here.
+                </PRE>
+                </BODY>
+                </HTML>
+                """;
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // Italic tags should be stripped, blockquote should render
+        assertThat(parsed.bodyHtml()).contains("<blockquote>");
+        assertThat(parsed.bodyHtml()).doesNotContain("<i>");
+        assertThat(parsed.bodyHtml()).doesNotContain("</i>");
+        assertThat(parsed.bodyMarkdown())
+                .contains("> This is quoted text")
+                .doesNotContain("<i>")
+                .doesNotContain("</i>");
+    }
+
+    @Test
+    void parse_codeBlockInsideBlockquote_rendersAsCodeBlock() {
+        // Code blocks inside blockquotes need proper spacing: > + space + 4 spaces
+        String html = """
+                <!DOCTYPE HTML>
+                <HTML>
+                <HEAD><TITLE>Test</TITLE></HEAD>
+                <BODY>
+                <H1>Test</H1>
+                <PRE>&gt;<i> Here is some code:
+                </I>&gt;<i>
+                </I>&gt;<i>     void example() {
+                </I>&gt;<i>         return;
+                </I>&gt;<i>     }
+                </I>&gt;<i>
+                </I>&gt;<i> End of code.
+                </I></PRE>
+                </BODY>
+                </HTML>
+                """;
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // Code block should render with <pre><code> inside blockquote
+        assertThat(parsed.bodyHtml()).contains("<blockquote>");
+        assertThat(parsed.bodyHtml()).contains("<pre><code>");
+        assertThat(parsed.bodyHtml()).contains("void example()");
+    }
+
+    @Test
+    void parse_lightlyIndentedCodeWithKeywords_rendersAsCodeBlock() {
+        // Lines with 2-3 space indentation containing Java keywords should become code blocks
+        // Using explicit \n and spaces to ensure indentation is preserved
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>Just a question, are you proposing that\n" +
+                "  case Point(0, 0) -&gt; ...\n" +
+                "\n" +
+                "is semantically equivalent to\n" +
+                "  case Point(var x, var y) when x == 0 -&gt; ...</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // The indented code lines should render as code blocks, not merged into paragraphs
+        assertThat(parsed.bodyHtml()).contains("<pre><code>");
+        assertThat(parsed.bodyHtml()).contains("case Point(0, 0)");
+        // Should not be merged into the paragraph
+        assertThat(parsed.bodyHtml()).doesNotContain("proposing that case");
+    }
+
+    @Test
+    void parse_lightlyIndentedCodeWithOperators_rendersAsCodeBlock() {
+        // Lines with operators like ->, ==, != should be detected as code
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>Consider this example:\n" +
+                "  x == 0 &amp;&amp; y == 0\n" +
+                "  result -&gt; process()</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        assertThat(parsed.bodyHtml()).contains("<pre><code>");
+        assertThat(parsed.bodyHtml()).contains("x == 0");
+    }
+
+    @Test
+    void parse_lightlyIndentedNonCode_remainsAsParagraph() {
+        // Lines with 2-3 space indentation but no code patterns should stay as text
+        // Note: avoid Java keywords like "this", "new", "class" in the test text
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>Here is my thought:\n" +
+                "  just some regular text\n" +
+                "  nothing special here</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // Should be rendered as regular paragraph text, not code
+        assertThat(parsed.bodyHtml()).doesNotContain("<pre><code>just some");
+    }
 }

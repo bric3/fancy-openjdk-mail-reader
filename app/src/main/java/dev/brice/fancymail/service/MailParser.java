@@ -340,14 +340,31 @@ public class MailParser {
         linkMatcher.appendTail(sb);
         content = sb.toString();
 
+        // Remove pipermail italic tags used for quoted content
+        // Pipermail wraps quoted lines in <i>...</I> tags (case varies)
+        // These must be removed before markdown parsing or they break blockquote detection
+        content = content.replaceAll("(?i)</?i>", "");
+
         // Decode HTML entities
         content = Parser.unescapeEntities(content, false);
+
+        // Normalize blockquote lines: ensure > is followed by a space
+        // This is required for proper markdown parsing, especially for code blocks
+        // inside blockquotes which need ">     code" (> + space + 4 space indent)
+        // Pipermail gives us ">    code" (> + 4 spaces) which isn't enough
+        content = content.replaceAll("(?m)^>(\\S)", "> $1");    // >text -> > text
+        content = content.replaceAll("(?m)^>( {2,})", "> $1");  // >  + spaces -> >   + spaces (adds one for code blocks)
 
         // Replace non-breaking spaces with regular spaces
         content = content.replace('\u00A0', ' ');
 
         // Remove attachment notices (lines starting with "-------------- next part")
         content = content.replaceAll("(?m)^-{10,} next part.*(?:\\r?\\n.*)*$", "");
+
+        // Convert lightly-indented code lines (2-3 spaces) to proper code blocks (4 spaces)
+        // This handles cases like "  case Point(0, 0) -> ..." which would otherwise
+        // be merged into the paragraph above
+        content = convertLightlyIndentedCodeToBlocks(content);
 
         // Trim trailing whitespace from each line but preserve line breaks
         content = content.lines()
@@ -359,6 +376,65 @@ public class MailParser {
         content = content.replaceAll("\n{3,}", "\n\n");
 
         return content.trim();
+    }
+
+    // Pattern for detecting code-like content
+    // Java keywords, operators, and common code patterns
+    private static final Pattern CODE_PATTERN = Pattern.compile(
+            "\\b(case|switch|if|else|for|while|do|return|break|continue|class|interface|enum|record|" +
+            "void|int|long|double|float|boolean|char|byte|short|var|final|static|public|private|protected|" +
+            "new|null|true|false|this|super|throws?|try|catch|finally|instanceof|extends|implements)\\b|" +
+            "->|=>|==|!=|<=|>=|&&|\\|\\||\\{|\\}|\\(.*\\)|//|/\\*|\\*/|;$"
+    );
+
+    /**
+     * Convert lightly-indented lines (2-3 spaces) that look like code into proper
+     * markdown code blocks (4 space indentation).
+     * <p>
+     * This handles cases like:
+     * <pre>
+     * Just a question, are you proposing that
+     *   case Point(0, 0) -> ...
+     * </pre>
+     * Where the "case" line would otherwise be merged into the paragraph.
+     * <p>
+     * Markdown requires a blank line before indented code blocks, so we add one
+     * when the previous line is not blank and not already a code block.
+     */
+    private String convertLightlyIndentedCodeToBlocks(String content) {
+        String[] lines = content.split("\n", -1);
+        StringBuilder result = new StringBuilder();
+
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
+            String prevLine = i > 0 ? lines[i - 1] : "";
+
+            // Check for lines with 2-3 space indentation (not already 4+)
+            if (line.matches("^ {2,3}\\S.*") && looksLikeCode(line.trim())) {
+                // Add blank line before code block if previous line is not blank
+                // and not already an indented code block
+                if (!prevLine.isBlank() && !prevLine.startsWith("    ")) {
+                    result.append("\n");
+                }
+                // Convert to 4-space indentation for proper code block
+                result.append("    ").append(line.trim());
+            } else {
+                result.append(line);
+            }
+
+            if (i < lines.length - 1) {
+                result.append("\n");
+            }
+        }
+
+        return result.toString();
+    }
+
+    /**
+     * Heuristic check if a line looks like code based on common patterns.
+     */
+    private boolean looksLikeCode(String line) {
+        return CODE_PATTERN.matcher(line).find();
     }
 
     /**
