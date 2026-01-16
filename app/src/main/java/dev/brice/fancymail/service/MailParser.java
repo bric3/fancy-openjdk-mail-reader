@@ -464,8 +464,9 @@ public class MailParser {
             String prefix = match.group(1);
             String msgType = match.group(2);
             // Only add leading newline if not in a blockquote
+            // Don't add trailing newline - the original newline is preserved ($ doesn't consume it)
             String leadingNewline = (prefix == null || prefix.isEmpty()) ? "\n" : "";
-            return leadingNewline + (prefix != null ? prefix : "") + "**───── " + msgType + " ─────**\n";
+            return leadingNewline + (prefix != null ? prefix : "") + "**───── " + msgType + " ─────**";
         });
 
         // Convert lightly-indented code lines (2-3 spaces) to proper code blocks (4 spaces)
