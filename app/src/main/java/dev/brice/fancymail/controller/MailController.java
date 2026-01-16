@@ -119,7 +119,7 @@ public class MailController {
      * Get raw markdown for a mail.
      */
     @Get("/markdown/{list}/{yearMonth}/{id}.md")
-    @Produces(MediaType.TEXT_PLAIN)
+    @Produces("text/plain; charset=utf-8")
     public String markdown(
             @PathVariable String list,
             @PathVariable String yearMonth,
