@@ -441,15 +441,15 @@ public class MailParser {
         // Decode HTML entities
         content = Parser.unescapeEntities(content, false);
 
-        // Normalize blockquote lines: ensure > is followed by a space
-        // This is required for proper markdown parsing, especially for code blocks
-        // inside blockquotes which need ">     code" (> + space + 4 space indent)
-        // Pipermail gives us ">    code" (> + 4 spaces) which isn't enough
-        content = content.replaceAll("(?m)^>(\\S)", "> $1");    // >text -> > text
-        content = content.replaceAll("(?m)^>( {2,})", "> $1");  // >  + spaces -> >   + spaces (adds one for code blocks)
-
-        // Replace non-breaking spaces with regular spaces
+        // Replace non-breaking spaces with regular spaces FIRST
+        // This must happen before blockquote normalization so all spaces are treated uniformly
         content = content.replace('\u00A0', ' ');
+
+        // Normalize blockquote lines: ensure > is followed by a space
+        // This is required for proper markdown parsing
+        content = content.replaceAll("(?m)^>(\\S)", "> $1");    // >text -> > text
+        // Note: We don't add extra spaces for indentation anymore since we convert
+        // to fenced code blocks which don't require the extra space
 
         // Remove attachment notices (lines starting with "-------------- next part")
         content = content.replaceAll("(?m)^-{10,} next part.*(?:\\r?\\n.*)*$", "");
@@ -468,6 +468,11 @@ public class MailParser {
             String leadingNewline = (prefix == null || prefix.isEmpty()) ? "\n" : "";
             return leadingNewline + (prefix != null ? prefix : "") + "**───── " + msgType + " ─────**";
         });
+
+        // Strip extra indentation from email header blocks within blockquotes
+        // Email clients often indent forwarded/quoted headers with 4+ spaces, which
+        // markdown would interpret as code blocks. We strip this indentation.
+        content = stripEmailHeaderIndentation(content);
 
         // Convert lightly-indented code lines (2-3 spaces) to proper code blocks (4 spaces)
         // This handles cases like "  case Point(0, 0) -> ..." which would otherwise
@@ -507,7 +512,193 @@ public class MailParser {
         // Detect and fence code inside list items (using looksLikeCode heuristic)
         content = convertListItemCodeToFenced(content);
 
+        // Detect and fence code blocks at column 0 (no indentation)
+        // This handles email-wrapped code that lost its indentation
+        content = convertColumnZeroCodeToFenced(content);
+
         return content.trim();
+    }
+
+    /**
+     * Convert indented email blocks within blockquotes to nested blockquotes.
+     * <p>
+     * Email clients often indent forwarded/quoted message headers AND body with 4+ spaces:
+     * <pre>
+     * >     *From: *"Viktor Klang"
+     * >     *To: *"Someone"
+     * >
+     * >     Just a quick note...
+     * >
+     * > Hello Viktor, (response - less indent)
+     * >
+     * >     This is another quote (back to email indent level)
+     * </pre>
+     * The indentation level of the email header defines what belongs to that email.
+     * Content at that indent level becomes nested blockquotes.
+     * Content at lower indent is kept at outer level, but we continue tracking
+     * to capture subsequent content at the email indent level.
+     */
+    private String stripEmailHeaderIndentation(String content) {
+        String[] lines = content.split("\n", -1);
+        StringBuilder result = new StringBuilder();
+        boolean inEmailContext = false;     // Have we seen an email header at this blockquote level?
+        String currentPrefix = "";
+        int emailIndentLevel = 0;           // Indentation level that defines the email block
+
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
+
+            // Check if this is a blockquoted line
+            if (line.startsWith(">")) {
+                Matcher matcher = BLOCKQUOTE_PREFIX_PATTERN.matcher(line);
+                if (matcher.find()) {
+                    String prefix = matcher.group(1);
+                    String rest = line.substring(prefix.length());
+
+                    // Count leading spaces for indentation
+                    int indentSpaces = 0;
+                    for (char c : rest.toCharArray()) {
+                        if (c == ' ') indentSpaces++;
+                        else break;
+                    }
+                    String trimmedRest = rest.trim();
+
+                    // Skip code-like lines entirely - they should pass through unchanged
+                    // and be handled by later code block detection methods
+                    if (looksLikeCode(trimmedRest) && !looksLikeEmailHeader(trimmedRest)) {
+                        result.append(line);
+                        if (i < lines.length - 1) {
+                            result.append("\n");
+                        }
+                        continue;
+                    }
+
+                    // Check if this line starts an email header block (detected by header pattern)
+                    if (!inEmailContext && indentSpaces >= 4 && looksLikeEmailHeader(trimmedRest)) {
+                        inEmailContext = true;
+                        currentPrefix = prefix;
+                        emailIndentLevel = indentSpaces;
+                        // Convert to nested blockquote
+                        result.append(prefix).append(" > ").append(trimmedRest);
+                        if (i < lines.length - 1) {
+                            result.append("\n");
+                        }
+                        continue;
+                    }
+
+                    // If we have email context at this prefix level, handle indentation
+                    if (inEmailContext && prefix.replace(" ", "").equals(currentPrefix.replace(" ", ""))) {
+                        // Blank line - keep at current nesting
+                        if (trimmedRest.isEmpty()) {
+                            // Check if next non-blank line is at email indent level
+                            // If so, this blank is part of nested content
+                            if (hasMoreIndentedContent(lines, i + 1, prefix, emailIndentLevel)) {
+                                result.append(prefix).append(" >");
+                            } else {
+                                result.append(prefix);
+                            }
+                            if (i < lines.length - 1) {
+                                result.append("\n");
+                            }
+                            continue;
+                        }
+
+                        // Content at or deeper than email indent level = nested blockquote
+                        if (indentSpaces >= emailIndentLevel) {
+                            // Check if this looks like code - if so, preserve original line
+                            // for later code block detection (don't convert to nested blockquote)
+                            if (looksLikeCode(trimmedRest) && !looksLikeEmailHeader(trimmedRest)) {
+                                // Keep original line - code block handling will process it later
+                                result.append(line);
+                                if (i < lines.length - 1) {
+                                    result.append("\n");
+                                }
+                                continue;
+                            }
+
+                            // Non-code content: calculate nesting depth relative to email indent
+                            int extraLevels = (indentSpaces - emailIndentLevel) / 4;
+                            String nestedPrefix = " >".repeat(Math.max(0, extraLevels));
+                            result.append(prefix).append(" >").append(nestedPrefix).append(" ").append(trimmedRest);
+                            if (i < lines.length - 1) {
+                                result.append("\n");
+                            }
+                            continue;
+                        }
+                        // Less indentation = outer level response, output as-is
+                        // But keep email context active for subsequent indented content
+                    }
+
+                    // Different blockquote prefix = end email context
+                    if (inEmailContext && !prefix.replace(" ", "").equals(currentPrefix.replace(" ", ""))) {
+                        inEmailContext = false;
+                    }
+                }
+            } else {
+                // Non-blockquoted line ends email context
+                inEmailContext = false;
+            }
+
+            // Default: output line as-is
+            result.append(line);
+            if (i < lines.length - 1) {
+                result.append("\n");
+            }
+        }
+
+        return result.toString();
+    }
+
+    /**
+     * Check if there's more content at the email indent level in upcoming lines.
+     */
+    private boolean hasMoreIndentedContent(String[] lines, int startIndex, String expectedPrefix, int emailIndentLevel) {
+        String normalizedExpected = expectedPrefix.replace(" ", "");
+        for (int i = startIndex; i < lines.length && i < startIndex + 5; i++) {
+            String line = lines[i];
+            if (!line.startsWith(">")) {
+                return false;
+            }
+            Matcher matcher = BLOCKQUOTE_PREFIX_PATTERN.matcher(line);
+            if (!matcher.find()) {
+                return false;
+            }
+            String prefix = matcher.group(1);
+            if (!prefix.replace(" ", "").equals(normalizedExpected)) {
+                return false;
+            }
+            String rest = line.substring(prefix.length());
+            if (rest.trim().isEmpty()) {
+                continue;
+            }
+            int indentSpaces = 0;
+            for (char c : rest.toCharArray()) {
+                if (c == ' ') indentSpaces++;
+                else break;
+            }
+            return indentSpaces >= emailIndentLevel;
+        }
+        return false;
+    }
+
+    /**
+     * Check if a line looks like a continuation of an email header.
+     * This handles wrapped header values like email addresses on their own line.
+     */
+    private boolean looksLikeEmailHeaderContinuation(String line) {
+        // Lines that look like email address continuations: <email@domain.com>
+        if (line.matches("^<.*>$") || line.matches("^<.*@.*>$")) {
+            return true;
+        }
+        // Lines with email-like content (contains @, angle brackets with content)
+        if (line.contains(" at ") && (line.contains("<") || line.contains(">"))) {
+            return true;
+        }
+        // Lines that look like quoted header content (quoted name + angle bracket email)
+        if (line.matches("^\"[^\"]+\"\\s*<.*") || line.matches(".*>\\s*$")) {
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -588,6 +779,14 @@ public class MailParser {
                     // Starting a new code block
                     inIndentedCodeBlock = true;
                     codeBlockPrefix = codeInfo.prefix;
+
+                    // For blockquote code: check if previous line(s) should be included
+                    // (non-indented lines that look like code, like "interface Foo {")
+                    StringBuilder priorCodeLines = new StringBuilder();
+                    if (!codeBlockPrefix.isEmpty()) {
+                        priorCodeLines = pullBackNonIndentedCodeLines(result, codeBlockPrefix);
+                    }
+
                     // Ensure blank line before code block if previous line wasn't blank
                     // BUT NOT for blockquote code - blank lines break blockquote continuity
                     if (codeBlockPrefix.isEmpty() && result.length() > 0) {
@@ -601,6 +800,10 @@ public class MailParser {
                     }
                     // Add opening fence with same prefix (add space after > for readability)
                     result.append(formatBlockquotePrefix(codeBlockPrefix)).append("```\n");
+                    // Add any prior code lines we pulled back
+                    if (priorCodeLines.length() > 0) {
+                        codeBlock.append(priorCodeLines);
+                    }
                 }
                 // Add code line with prefix but without the code indentation
                 codeBlock.append(formatBlockquotePrefix(codeBlockPrefix)).append(codeInfo.code).append("\n");
@@ -622,15 +825,33 @@ public class MailParser {
                     // Include blank line in regular code block
                     codeBlock.append("\n");
                 } else if (inIndentedCodeBlock) {
-                    // Ending code block
-                    result.append(codeBlock);
-                    result.append(formatBlockquotePrefix(codeBlockPrefix)).append("```\n");
-                    codeBlock.setLength(0);
-                    inIndentedCodeBlock = false;
-                    codeBlockPrefix = "";
-                    result.append(line);
-                    if (i < lines.length - 1) {
-                        result.append("\n");
+                    // Ending code block - but first check if this line should be included
+                    // (non-indented line that looks like code, like a closing "}")
+                    boolean includeThisLine = false;
+                    if (!codeBlockPrefix.isEmpty()) {
+                        String contentAfterPrefix = extractContentAfterBlockquotePrefix(line, codeBlockPrefix);
+                        if (contentAfterPrefix != null && !contentAfterPrefix.trim().isEmpty() &&
+                                looksLikeCode(contentAfterPrefix.trim())) {
+                            includeThisLine = true;
+                        }
+                    }
+
+                    if (includeThisLine) {
+                        // Include this line in the code block and continue
+                        String contentAfterPrefix = extractContentAfterBlockquotePrefix(line, codeBlockPrefix);
+                        codeBlock.append(formatBlockquotePrefix(codeBlockPrefix))
+                                .append(contentAfterPrefix.trim()).append("\n");
+                    } else {
+                        // Actually ending the code block
+                        result.append(codeBlock);
+                        result.append(formatBlockquotePrefix(codeBlockPrefix)).append("```\n");
+                        codeBlock.setLength(0);
+                        inIndentedCodeBlock = false;
+                        codeBlockPrefix = "";
+                        result.append(line);
+                        if (i < lines.length - 1) {
+                            result.append("\n");
+                        }
                     }
                 } else {
                     result.append(line);
@@ -663,6 +884,133 @@ public class MailParser {
             return prefix + " ";
         }
         return prefix;
+    }
+
+    /**
+     * Pull back non-indented lines from the result that look like code.
+     * This handles cases like:
+     * <pre>
+     * > interface Foo {           # non-indented, but looks like code
+     * >   void method();          # indented - starts code block detection
+     * </pre>
+     * When we detect the indented code, we look back and pull "interface Foo {" into the code block.
+     */
+    private StringBuilder pullBackNonIndentedCodeLines(StringBuilder result, String expectedPrefix) {
+        StringBuilder pulledLines = new StringBuilder();
+        String normalizedExpected = expectedPrefix.replace(" ", "");
+
+        // Work backwards through result to find code-like lines to pull
+        String resultStr = result.toString();
+        String[] resultLines = resultStr.split("\n", -1);
+
+        int pullFromIndex = resultLines.length;
+        for (int i = resultLines.length - 1; i >= 0; i--) {
+            String line = resultLines[i];
+
+            // Skip empty lines at the end
+            if (line.trim().isEmpty() && i == resultLines.length - 1) {
+                pullFromIndex = i;
+                continue;
+            }
+
+            // Check if this is a blockquote line with matching prefix
+            if (!line.startsWith(">")) {
+                break;
+            }
+
+            Matcher matcher = BLOCKQUOTE_PREFIX_PATTERN.matcher(line);
+            if (!matcher.find()) {
+                break;
+            }
+
+            String prefix = matcher.group(1);
+            String normalizedPrefix = prefix.replace(" ", "");
+            if (!normalizedPrefix.equals(normalizedExpected)) {
+                break;
+            }
+
+            String rest = line.substring(prefix.length());
+            // Strip optional space after prefix
+            if (rest.startsWith(" ")) {
+                rest = rest.substring(1);
+            }
+
+            // Check if this is a non-indented line that looks like code
+            if (!rest.startsWith(" ") && !rest.trim().isEmpty() && looksLikeCode(rest.trim())) {
+                pullFromIndex = i;
+            } else {
+                // Hit a non-code line, stop looking
+                break;
+            }
+        }
+
+        // Pull the identified lines
+        if (pullFromIndex < resultLines.length) {
+            // Rebuild result without the pulled lines
+            StringBuilder newResult = new StringBuilder();
+            for (int i = 0; i < pullFromIndex; i++) {
+                newResult.append(resultLines[i]);
+                if (i < pullFromIndex - 1) {
+                    newResult.append("\n");
+                }
+            }
+            // Add trailing newline if there was one
+            if (pullFromIndex > 0) {
+                newResult.append("\n");
+            }
+            result.setLength(0);
+            result.append(newResult);
+
+            // Build the pulled lines for the code block
+            for (int i = pullFromIndex; i < resultLines.length; i++) {
+                String line = resultLines[i];
+                if (line.trim().isEmpty()) {
+                    continue; // Skip empty lines
+                }
+                Matcher matcher = BLOCKQUOTE_PREFIX_PATTERN.matcher(line);
+                if (matcher.find()) {
+                    String prefix = matcher.group(1);
+                    String rest = line.substring(prefix.length());
+                    if (rest.startsWith(" ")) {
+                        rest = rest.substring(1);
+                    }
+                    pulledLines.append(formatBlockquotePrefix(expectedPrefix)).append(rest.trim()).append("\n");
+                }
+            }
+        }
+
+        return pulledLines;
+    }
+
+    /**
+     * Extract the content after a blockquote prefix, if the line matches the expected prefix.
+     * Returns null if the line doesn't match the expected prefix pattern.
+     */
+    private String extractContentAfterBlockquotePrefix(String line, String expectedPrefix) {
+        if (!line.startsWith(">")) {
+            return null;
+        }
+
+        Matcher matcher = BLOCKQUOTE_PREFIX_PATTERN.matcher(line);
+        if (!matcher.find()) {
+            return null;
+        }
+
+        String prefix = matcher.group(1);
+        String normalizedPrefix = prefix.replace(" ", "");
+        String normalizedExpected = expectedPrefix.replace(" ", "");
+
+        if (!normalizedPrefix.equals(normalizedExpected)) {
+            return null;
+        }
+
+        String rest = line.substring(prefix.length());
+        // Strip optional space after prefix
+        if (rest.startsWith(" ")) {
+            rest = rest.substring(1);
+        }
+
+        return rest;
     }
 
     /**
@@ -792,6 +1140,243 @@ public class MailParser {
     }
 
     /**
+     * Detect and fence code blocks at column 0 (no indentation) or at column 0 within blockquotes.
+     * <p>
+     * This handles cases where code was pasted into an email without indentation,
+     * or where email wrapping caused code to lose its indentation. We look for
+     * consecutive lines that look like code and wrap them in fenced blocks.
+     * <p>
+     * Also handles blockquoted code like "> interface Foo {" where the code starts
+     * immediately after the blockquote prefix without additional indentation.
+     * <p>
+     * Requires at least 2 consecutive code-like lines to avoid false positives.
+     * Also skips lines that are already inside fenced code blocks.
+     */
+    private String convertColumnZeroCodeToFenced(String content) {
+        String[] lines = content.split("\n", -1);
+        StringBuilder result = new StringBuilder();
+        StringBuilder codeBlock = new StringBuilder();
+        boolean inExistingFencedBlock = false;
+        int consecutiveCodeLines = 0;
+        String currentBlockquotePrefix = null;  // Track blockquote context
+
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
+            String trimmed = line.trim();
+
+            // Check for blockquoted lines - extract prefix and content FIRST
+            String prefix = "";
+            String contentAfterPrefix = line;
+            if (line.startsWith(">")) {
+                Matcher matcher = BLOCKQUOTE_PREFIX_PATTERN.matcher(line);
+                if (matcher.find()) {
+                    prefix = matcher.group(1);
+                    contentAfterPrefix = line.substring(prefix.length());
+                    // Strip one optional space after the prefix
+                    if (contentAfterPrefix.startsWith(" ")) {
+                        contentAfterPrefix = contentAfterPrefix.substring(1);
+                    }
+                }
+            }
+
+            // Track existing fenced code blocks - don't modify content inside them
+            // Handle fences both at start of line and after blockquote prefixes
+            String contentForFenceCheck = contentAfterPrefix.trim();
+            if (contentForFenceCheck.startsWith("```")) {
+                // Flush any pending code block first
+                flushCodeBlock(result, codeBlock, consecutiveCodeLines, currentBlockquotePrefix);
+                codeBlock.setLength(0);
+                consecutiveCodeLines = 0;
+                currentBlockquotePrefix = null;
+
+                inExistingFencedBlock = !inExistingFencedBlock;
+                result.append(line);
+                if (i < lines.length - 1) {
+                    result.append("\n");
+                }
+                continue;
+            }
+
+            // Pass through content inside existing fenced blocks
+            if (inExistingFencedBlock) {
+                result.append(line);
+                if (i < lines.length - 1) {
+                    result.append("\n");
+                }
+                continue;
+            }
+
+            // Handle indented lines and list items
+            boolean isIndentedOrList = contentAfterPrefix.startsWith("    ") || contentAfterPrefix.startsWith("\t") ||
+                    contentAfterPrefix.trim().matches("^([-*]|\\d+\\.)\\s.*");
+
+            if (isIndentedOrList) {
+                String trimmedContent = contentAfterPrefix.trim();
+                String normalizedPrefix = prefix.replace(" ", "");
+                String currentNormalized = currentBlockquotePrefix != null ?
+                        currentBlockquotePrefix.replace(" ", "") : "";
+
+                // If we're already building a code block with the same prefix, include this indented line
+                // (even if it doesn't look like code - indentation within a block is a strong signal)
+                if (consecutiveCodeLines > 0 && normalizedPrefix.equals(currentNormalized)) {
+                    codeBlock.append(line).append("\n");
+                    consecutiveCodeLines++;
+                    continue;
+                }
+
+                // If this indented line looks like code, start a new code block
+                if (looksLikeCode(trimmedContent)) {
+                    flushCodeBlock(result, codeBlock, consecutiveCodeLines, currentBlockquotePrefix);
+                    codeBlock.setLength(0);
+                    currentBlockquotePrefix = prefix;
+                    codeBlock.append(line).append("\n");
+                    consecutiveCodeLines = 1;
+                    continue;
+                }
+
+                // Non-code indented line and not in a code block: flush and skip
+                flushCodeBlock(result, codeBlock, consecutiveCodeLines, currentBlockquotePrefix);
+                codeBlock.setLength(0);
+                consecutiveCodeLines = 0;
+                currentBlockquotePrefix = null;
+
+                result.append(line);
+                if (i < lines.length - 1) {
+                    result.append("\n");
+                }
+                continue;
+            }
+
+            // Check if content looks like code (at column 0 or right after blockquote prefix)
+            String trimmedContent = contentAfterPrefix.trim();
+            if (!trimmedContent.isEmpty() && looksLikeCode(trimmedContent)) {
+                // Check if we're continuing in the same blockquote context
+                String normalizedPrefix = prefix.replace(" ", "");
+                String currentNormalized = currentBlockquotePrefix != null ?
+                        currentBlockquotePrefix.replace(" ", "") : "";
+
+                if (currentBlockquotePrefix == null || normalizedPrefix.equals(currentNormalized)) {
+                    if (currentBlockquotePrefix == null) {
+                        currentBlockquotePrefix = prefix;
+                    }
+                    consecutiveCodeLines++;
+                    codeBlock.append(line).append("\n");
+                } else {
+                    // Different blockquote context - flush and start new
+                    flushCodeBlock(result, codeBlock, consecutiveCodeLines, currentBlockquotePrefix);
+                    codeBlock.setLength(0);
+                    consecutiveCodeLines = 1;
+                    currentBlockquotePrefix = prefix;
+                    codeBlock.append(line).append("\n");
+                }
+            } else if (trimmedContent.isEmpty() && consecutiveCodeLines > 0) {
+                // Blank line (or blank blockquote line) within potential code block
+                if (hasMoreColumnZeroCodeWithPrefix(lines, i + 1, currentBlockquotePrefix)) {
+                    codeBlock.append(line).append("\n");
+                } else {
+                    // End of code block
+                    flushCodeBlock(result, codeBlock, consecutiveCodeLines, currentBlockquotePrefix);
+                    codeBlock.setLength(0);
+                    consecutiveCodeLines = 0;
+                    currentBlockquotePrefix = null;
+
+                    result.append(line);
+                    if (i < lines.length - 1) {
+                        result.append("\n");
+                    }
+                }
+            } else {
+                // Non-code line - flush any pending code block
+                flushCodeBlock(result, codeBlock, consecutiveCodeLines, currentBlockquotePrefix);
+                codeBlock.setLength(0);
+                consecutiveCodeLines = 0;
+                currentBlockquotePrefix = null;
+
+                result.append(line);
+                if (i < lines.length - 1) {
+                    result.append("\n");
+                }
+            }
+        }
+
+        // Flush any remaining code block
+        if (consecutiveCodeLines >= 2 && codeBlock.length() > 0) {
+            String fencePrefix = currentBlockquotePrefix != null ? formatBlockquotePrefix(currentBlockquotePrefix) : "";
+            result.append(fencePrefix).append("```\n");
+            result.append(codeBlock);
+            result.append(fencePrefix).append("```");
+        } else if (codeBlock.length() > 0) {
+            result.append(codeBlock.toString().stripTrailing());
+        }
+
+        return result.toString();
+    }
+
+    /**
+     * Helper to flush a code block to the result buffer.
+     */
+    private void flushCodeBlock(StringBuilder result, StringBuilder codeBlock,
+                                int consecutiveCodeLines, String blockquotePrefix) {
+        if (consecutiveCodeLines >= 2 && codeBlock.length() > 0) {
+            String fencePrefix = blockquotePrefix != null ? formatBlockquotePrefix(blockquotePrefix) : "";
+            result.append(fencePrefix).append("```\n");
+            result.append(codeBlock);
+            result.append(fencePrefix).append("```\n");
+        } else if (codeBlock.length() > 0) {
+            result.append(codeBlock);
+        }
+    }
+
+    /**
+     * Check if there's more column-0 code-like content in upcoming lines with the same prefix.
+     */
+    private boolean hasMoreColumnZeroCodeWithPrefix(String[] lines, int startIndex, String expectedPrefix) {
+        String normalizedExpected = expectedPrefix != null ? expectedPrefix.replace(" ", "") : "";
+
+        for (int i = startIndex; i < lines.length; i++) {
+            String line = lines[i];
+
+            // Extract prefix and content
+            String prefix = "";
+            String contentAfterPrefix = line;
+            if (line.startsWith(">")) {
+                Matcher matcher = BLOCKQUOTE_PREFIX_PATTERN.matcher(line);
+                if (matcher.find()) {
+                    prefix = matcher.group(1);
+                    contentAfterPrefix = line.substring(prefix.length());
+                    if (contentAfterPrefix.startsWith(" ")) {
+                        contentAfterPrefix = contentAfterPrefix.substring(1);
+                    }
+                }
+            }
+
+            String trimmedContent = contentAfterPrefix.trim();
+
+            // Skip blank lines with matching prefix
+            if (trimmedContent.isEmpty()) {
+                String normalizedPrefix = prefix.replace(" ", "");
+                if (normalizedPrefix.equals(normalizedExpected)) {
+                    continue;
+                }
+                return false;
+            }
+
+            // Check if prefix matches and content looks like code
+            String normalizedPrefix = prefix.replace(" ", "");
+            if (normalizedPrefix.equals(normalizedExpected) &&
+                    !contentAfterPrefix.startsWith("    ") &&
+                    !contentAfterPrefix.startsWith("\t") &&
+                    !trimmedContent.matches("^([-*]|\\d+\\.)\\s.*") &&
+                    looksLikeCode(trimmedContent)) {
+                return true;
+            }
+
+            return false;
+        }
+        return false;
+    }
+
+    /**
      * Information about an indented code line.
      */
     private record IndentedCodeInfo(String prefix, String code) {}
@@ -799,6 +1384,14 @@ public class MailParser {
     // Pattern to match blockquote prefixes like ">", "> >", ">>", "> > >", etc.
     // Uses ">(?:[ ]?>)*" to avoid greedily consuming trailing space before code indent
     private static final Pattern BLOCKQUOTE_PREFIX_PATTERN = Pattern.compile("^(>(?:[ ]?>)*)");
+
+    // Pattern to detect email header lines that should NOT be treated as code
+    // Matches lines like "*From: *" or "From:" at the start (with optional leading * for bold)
+    // Common headers: From, To, Cc, Bcc, Subject, Sent, Date, Reply-To
+    private static final Pattern EMAIL_HEADER_PATTERN = Pattern.compile(
+            "^\\*?(From|To|Cc|Bcc|Subject|Sent|Date|Reply-To):\\s?\\*?",
+            Pattern.CASE_INSENSITIVE
+    );
 
     /**
      * Check if a line is an indented code block line and extract its components.
@@ -810,40 +1403,28 @@ public class MailParser {
     private IndentedCodeInfo getIndentedCodeInfo(String line) {
         // Regular indented code block (4+ spaces)
         if (line.startsWith("    ")) {
-            return new IndentedCodeInfo("", line.substring(4));
+            String code = line.substring(4);
+            // Don't treat email headers as code (e.g., "*From: *Viktor Klang")
+            if (looksLikeEmailHeader(code)) {
+                return null;
+            }
+            return new IndentedCodeInfo("", code);
         }
 
-        // Blockquote with indented code (handles nested blockquotes)
-        if (line.startsWith(">")) {
-            Matcher matcher = BLOCKQUOTE_PREFIX_PATTERN.matcher(line);
-            if (matcher.find()) {
-                String prefix = matcher.group(1);
-                String rest = line.substring(prefix.length());
-                // Standard: 4+ spaces for a code block
-                if (rest.startsWith("    ")) {
-                    // Strip exactly 4 spaces, then strip any additional leading spaces
-                    // (blockquote normalization may have added 1-2 extra spaces)
-                    String code = rest.substring(4);
-                    // Strip up to 2 leading spaces from normalization
-                    if (code.startsWith("  ")) {
-                        code = code.substring(2);
-                    } else if (code.startsWith(" ")) {
-                        code = code.substring(1);
-                    }
-                    return new IndentedCodeInfo(prefix, code);
-                }
-                // Fallback: 2-3 spaces if content looks like code
-                // (handles inconsistent indentation in emails)
-                if (rest.startsWith("  ") || rest.startsWith("   ")) {
-                    String trimmed = rest.trim();
-                    if (looksLikeCode(trimmed)) {
-                        return new IndentedCodeInfo(prefix, trimmed);
-                    }
-                }
-            }
-        }
+        // Note: Blockquote code is NOT handled here.
+        // All blockquote code detection is done by convertColumnZeroCodeToFenced()
+        // which preserves the original line spacing for proper indentation within code blocks.
 
         return null;
+    }
+
+    /**
+     * Check if a line looks like an email header (From, To, Cc, Subject, etc.)
+     * These should not be treated as code even when indented.
+     */
+    private boolean looksLikeEmailHeader(String line) {
+        String trimmed = line.trim();
+        return EMAIL_HEADER_PATTERN.matcher(trimmed).find();
     }
 
     /**
@@ -913,8 +1494,23 @@ public class MailParser {
     // These are reliable indicators of code that rarely appear in prose
     // Note: `;$` (semicolon at end of line) was intentionally excluded because
     // prose can end with semicolons too (e.g., list items in discussions)
+    // Note: `\(.*\)` was replaced with a more specific pattern that requires
+    // parentheses to look like code (no spaces right after opening paren, or
+    // contains code-like content like commas between identifiers)
+    // Note: `--` requires context (not standalone) to avoid matching signature separators
     private static final Pattern CODE_SYNTAX_PATTERN = Pattern.compile(
-            "->|=>|==|!=|<=|>=|&&|\\|\\||\\{|\\}|\\(.*\\)|//|/\\*|\\*/|\\+\\+|--"
+            "->|=>|==|!=|<=|>=|&&|\\|\\||\\{|\\}|//|/\\*|\\*/|\\+\\+|\\w--(?!$)|(?<!^)--\\w"
+    );
+
+    // Pattern for code-like parentheses: method calls, type parameters, etc.
+    // Matches: foo(), foo(x), foo(x, y), but NOT prose with parentheses like "itself (not the case)"
+    // Key: NO space allowed between identifier and opening paren for method calls
+    private static final Pattern CODE_PARENS_PATTERN = Pattern.compile(
+            "\\w+\\([^)]*\\)|" +                // method call: foo() or foo(args) - NO space before (
+            "\\([^)]*,\\s*[^)]*\\)|" +          // tuple/params: (a, b)
+            "<[^>]+>\\s*\\(|" +                 // generics before paren: <T>(
+            "\\)\\s*\\{|" +                     // ) followed by { : method signature
+            "\\w+<[^>]+>"                       // generic type: List<String>
     );
 
     // Pattern for Java keywords - these alone are NOT enough to identify code
@@ -979,21 +1575,36 @@ public class MailParser {
         return result.toString();
     }
 
+    // Pattern to match markdown links: [text](url)
+    private static final Pattern MARKDOWN_LINK_PATTERN = Pattern.compile("\\[[^\\]]*\\]\\([^)]*\\)");
+
     /**
      * Heuristic check if a line looks like code based on common patterns.
      * <p>
      * A line is considered code if it has:
-     * 1. Code syntax/operators (reliable indicators like ->, {}, (), etc.), OR
-     * 2. Keywords COMBINED with syntax (keywords alone are not enough because
-     *    prose about Java naturally uses words like "record", "class", "case")
+     * 1. Code syntax/operators (reliable indicators like ->, {}, ==, etc.), OR
+     * 2. Code-like parentheses (method calls, type parameters, tuples)
+     * <p>
+     * Keywords alone are NOT enough because prose about Java naturally uses
+     * words like "record", "class", "case".
+     * <p>
+     * Markdown links [text](url) are stripped before checking, as they contain
+     * parentheses that would otherwise match the code pattern.
      */
     private boolean looksLikeCode(String line) {
-        boolean hasSyntax = CODE_SYNTAX_PATTERN.matcher(line).find();
-        if (hasSyntax) {
+        // Strip markdown links before checking - they contain () which would match code patterns
+        String lineWithoutLinks = MARKDOWN_LINK_PATTERN.matcher(line).replaceAll("");
+
+        // Check for definite code syntax (operators, braces)
+        if (CODE_SYNTAX_PATTERN.matcher(lineWithoutLinks).find()) {
             return true;
         }
-        // Keywords alone are not enough - require syntax as well
-        // This prevents "record's API" from being treated as code
+
+        // Check for code-like parentheses (method calls, generics, tuples)
+        if (CODE_PARENS_PATTERN.matcher(lineWithoutLinks).find()) {
+            return true;
+        }
+
         return false;
     }
 

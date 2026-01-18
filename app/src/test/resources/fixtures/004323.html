@@ -1,0 +1,113 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Data Oriented Programming, Beyond Records
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:amber-spec-experts%40openjdk.org?Subject=Re%3A%20Data%20Oriented%20Programming%2C%20Beyond%20Records&In-Reply-To=%3C1864311863.19305629.1768687793277.JavaMail.zimbra%40univ-eiffel.fr%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="004321.html">
+   <LINK REL="Next"  HREF="004324.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Data Oriented Programming, Beyond Records</H1>
+    <B>forax at univ-mlv.fr</B> 
+    <A HREF="mailto:amber-spec-experts%40openjdk.org?Subject=Re%3A%20Data%20Oriented%20Programming%2C%20Beyond%20Records&In-Reply-To=%3C1864311863.19305629.1768687793277.JavaMail.zimbra%40univ-eiffel.fr%3E"
+       TITLE="Data Oriented Programming, Beyond Records">forax at univ-mlv.fr
+       </A><BR>
+    <I>Sat Jan 17 22:09:53 UTC 2026</I>
+    <P><UL>
+        <LI>Previous message (by thread): <A HREF="004321.html">Data Oriented Programming, Beyond Records
+</A></li>
+        <LI>Next message (by thread): <A HREF="004324.html">Data Oriented Programming, Beyond Records
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#4323">[ date ]</a>
+              <a href="thread.html#4323">[ thread ]</a>
+              <a href="subject.html#4323">[ subject ]</a>
+              <a href="author.html#4323">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>&gt;<i> From: &quot;Viktor Klang&quot; &lt;<A HREF="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">viktor.klang at oracle.com</A>&gt;
+</I>&gt;<i> To: &quot;Remi Forax&quot; &lt;<A HREF="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">forax at univ-mlv.fr</A>&gt;, &quot;Brian Goetz&quot; &lt;<A HREF="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">brian.goetz at oracle.com</A>&gt;
+</I>&gt;<i> Cc: &quot;amber-spec-experts&quot; &lt;<A HREF="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">amber-spec-experts at openjdk.java.net</A>&gt;
+</I>&gt;<i> Sent: Saturday, January 17, 2026 5:00:41 PM
+</I>&gt;<i> Subject: Re: Data Oriented Programming, Beyond Records
+</I>
+&gt;<i> Just a quick note regarding the following, given my experience in this area:
+</I>&gt;<i> On 2026-01-17 11:36, Remi Forax wrote:
+</I>
+&gt;&gt;<i> A de-constructor becomes an instance method that must return a carrier
+</I>&gt;&gt;<i> class/carrier interface, a type that has the information to be destructured and
+</I>&gt;&gt;<i> the structure has to match the one defined by the type.
+</I>Hello Viktor, 
+thanks to bring back that point, 
+
+&gt;<i> This simply does not work as a deconstructor cannot be an instance-method just
+</I>&gt;<i> like a constructor cannot be an instance method: It strictly belongs to the
+</I>&gt;<i> type itself (not the hierarchy) and
+</I>It can work as you said for a concrete type, but for an abstract type, you need to go from the abstract definition to the concrete one, 
+if you do not want to re-invent the wheel here, the deconstructor has to be an abstract instance method. 
+
+For example, with a non-public named implementation 
+
+interface Pair&lt;F, S&gt;(F first, S second) { 
+public &lt;F,S&gt; Pair&lt;F,S&gt; of(F first, S second) { 
+record Impl&lt;F, S&gt;(F first, S second) implements Pair&lt;F, S&gt;{ } 
+return new Impl&lt;&gt;(first, second); 
+} 
+} 
+
+inside Pair, there is no concrete field first and second, so you need a way to extract them from the implementation. 
+
+This can be implemented either using accessors (first() and second()) but you have a problem if you want your implementation to be mutable and synchronized on a lock (because the instance can be changed in between the call to first() and the call to second()) or you can have one abstract method, the deconstructor. 
+
+&gt;<i> it doesn't play well with implementing multiple interfaces (name clashing), and
+</I>&gt;<i> interacts poorly with overload resolution (instead of choosing most-specific,
+</I>&gt;<i> you need to select a specific point in the hierarchy to call the method).
+</I>It depends on the compiler translation, but if you limit yourself to one destructor per class (the dual of the canonical constructor), the deconstructor can be desugared to one instance method that takes nothing and return java.lang.Object, so no name clash and no problem of overloading (because overloading is not allowed, you have to use '_' at use site). 
+
+&gt;<i> --
+</I>&gt;<i> Cheers,
+</I>&gt;<i> &#8730;
+</I>
+regards, 
+R&#233;mi 
+
+&gt;<i> Viktor Klang
+</I>&gt;<i> Software Architect, Java Platform Group
+</I>&gt;<i> Oracle
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="https://mail.openjdk.org/pipermail/amber-spec-experts/attachments/20260117/368b8108/attachment.htm">https://mail.openjdk.org/pipermail/amber-spec-experts/attachments/20260117/368b8108/attachment.htm</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message (by thread): <A HREF="004321.html">Data Oriented Programming, Beyond Records
+</A></li>
+	<LI>Next message (by thread): <A HREF="004324.html">Data Oriented Programming, Beyond Records
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#4323">[ date ]</a>
+              <a href="thread.html#4323">[ thread ]</a>
+              <a href="subject.html#4323">[ subject ]</a>
+              <a href="author.html#4323">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">More information about the amber-spec-experts
+mailing list</a><br>
+<script type="text/javascript"  src="/6vgIx/h08T/dssi/53PN8X/3/9r3wmr4Q9fVhbh/PjhiD35gAgo/dylSfH/kCYGEB"></script></body></html>

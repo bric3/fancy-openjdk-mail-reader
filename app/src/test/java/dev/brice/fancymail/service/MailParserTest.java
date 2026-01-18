@@ -690,9 +690,9 @@ class MailParserTest {
 
         ParsedMail parsed = parser.parse(html, mailPath);
 
-        // Should have fenced code block with > prefix
-        assertThat(parsed.bodyMarkdown()).contains("> ```\n> void example()");
-        assertThat(parsed.bodyMarkdown()).contains("> }\n> ```");
+        // Should have fenced code block with > prefix, preserving original indentation
+        assertThat(parsed.bodyMarkdown()).contains("> ```\n>     void example()");
+        assertThat(parsed.bodyMarkdown()).contains(">     }\n> ```");
     }
 
     @Test
@@ -931,5 +931,155 @@ class MailParserTest {
         assertThat(parsed.bodyMarkdown())
                 .contains("disassemble a value")
                 .contains("pattern matching is great");
+    }
+
+    @Test
+    void parse_fixture004323_columnZeroCodeDetectedAsFenced() throws IOException {
+        // Real fixture from https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004323.html
+        // Tests that code at column 0 (no indentation) is detected and fenced
+        String html = loadFixture("004323.html");
+        MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004323");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // The interface/record code at column 0 should be detected as code
+        // because it contains code syntax patterns like { }, (), implements, etc.
+        assertThat(parsed.bodyMarkdown())
+                .contains("interface Pair")
+                .contains("record Impl");
+
+        // The code should be wrapped in fenced code blocks
+        assertThat(parsed.bodyMarkdown()).contains("```");
+
+        // HTML output should have proper code formatting
+        assertThat(parsed.bodyHtml()).contains("<pre><code>");
+        assertThat(parsed.bodyHtml()).contains("interface Pair");
+    }
+
+    @Test
+    void parse_fixture004324_quotedEmailHeadersNotTreatedAsCode() throws IOException {
+        // Real fixture from https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004324.html
+        // Tests that quoted email headers (*From: *, *To: *, etc.) are NOT treated as code
+        String html = loadFixture("004324.html");
+        MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004324");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // Email headers like "*From: *" should NOT be in code blocks
+        // They should be rendered as regular blockquoted text with bold formatting
+        assertThat(parsed.bodyMarkdown())
+                .contains("*From: *")
+                .contains("*To: *")
+                .contains("*Subject: *");
+
+        // The email header block should NOT be wrapped in fenced code blocks
+        // Verify *From: * is NOT immediately after an opening ``` without a closing ```
+        String markdown = parsed.bodyMarkdown();
+        int fromIndex = markdown.indexOf("*From: *");
+        assertThat(fromIndex).isGreaterThan(-1);
+
+        // Check that the *From: * is not inside an unclosed code fence
+        String beforeFrom = markdown.substring(0, fromIndex);
+        // Count opening and closing fences before *From: *
+        int fenceCount = countOccurrences(beforeFrom, "```");
+        // If even number of fences, we're outside code blocks (good)
+        // If odd number, we're inside a code block (bad)
+        assertThat(fenceCount % 2)
+                .as("Email header *From: * should not be inside an unclosed code fence")
+                .isEqualTo(0);
+
+        // The actual email content should still be properly parsed
+        assertThat(parsed.bodyMarkdown()).contains("deconstructor is not a method at all");
+    }
+
+    private int countOccurrences(String str, String sub) {
+        int count = 0;
+        int idx = 0;
+        while ((idx = str.indexOf(sub, idx)) != -1) {
+            count++;
+            idx += sub.length();
+        }
+        return count;
+    }
+
+    @Test
+    void parse_columnZeroCode_multiLineDetection() {
+        // Tests that multiple consecutive lines at column 0 that look like code
+        // are wrapped in a single fenced code block
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>\n" +
+                "For example, with a non-public named implementation\n" +
+                "\n" +
+                "interface Pair&lt;F, S&gt;(F first, S second) {\n" +
+                "public &lt;F,S&gt; Pair&lt;F,S&gt; of(F first, S second) {\n" +
+                "record Impl&lt;F, S&gt;(F first, S second) implements Pair&lt;F, S&gt;{ }\n" +
+                "return new Impl&lt;&gt;(first, second);\n" +
+                "}\n" +
+                "}\n" +
+                "\n" +
+                "inside Pair, there is no concrete field.\n" +
+                "</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // The code block should be detected and fenced
+        assertThat(parsed.bodyMarkdown())
+                .contains("```")
+                .contains("interface Pair")
+                .contains("record Impl");
+
+        // The prose before and after should NOT be in code blocks
+        assertThat(parsed.bodyMarkdown())
+                .contains("For example, with a non-public named implementation")
+                .contains("inside Pair, there is no concrete field");
+
+        // There should be one code block (2 fence markers)
+        long fenceCount = parsed.bodyMarkdown().split("```", -1).length - 1;
+        assertThat(fenceCount)
+                .as("Expected 1 code block (2 fence markers)")
+                .isEqualTo(2);
+    }
+
+    @Test
+    void parse_indentedEmailHeaders_notTreatedAsCode() {
+        // Tests that indented email headers are NOT treated as code
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>\n" +
+                "&gt; ------------------------------------------------------------------------\n" +
+                "&gt;\n" +
+                "&gt;     *From: *&quot;Viktor Klang&quot; &lt;viktor.klang at oracle.com&gt;\n" +
+                "&gt;     *To: *&quot;Remi Forax&quot; &lt;forax at univ-mlv.fr&gt;\n" +
+                "&gt;     *Cc: *&quot;amber-spec-experts&quot; &lt;amber-spec-experts at openjdk.java.net&gt;\n" +
+                "&gt;     *Sent: *Saturday, January 17, 2026 5:00:41 PM\n" +
+                "&gt;     *Subject: *Re: Data Oriented Programming\n" +
+                "&gt;\n" +
+                "&gt;     Just a quick note regarding the following.\n" +
+                "</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // Email headers should NOT be wrapped in code fences
+        // They should appear as regular blockquoted text
+        assertThat(parsed.bodyMarkdown())
+                .contains("*From: *")
+                .contains("*To: *")
+                .contains("*Subject: *");
+
+        // Count code fences - there should be none for the email headers
+        // (The headers are in a blockquote, not a code block)
+        String markdown = parsed.bodyMarkdown();
+
+        // Check the structure: email headers should be in blockquotes, not code
+        assertThat(markdown).contains("> ");
+        assertThat(markdown).contains("*From: *\"Viktor Klang\"");
+
+        // The note text should also be in the blockquote
+        assertThat(markdown).contains("Just a quick note");
     }
 }

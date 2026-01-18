@@ -1,0 +1,155 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Data Oriented Programming, Beyond Records
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:amber-spec-experts%40openjdk.org?Subject=Re%3A%20Data%20Oriented%20Programming%2C%20Beyond%20Records&In-Reply-To=%3C51739d3f-df00-47bd-a001-08b409f64532%40oracle.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="004323.html">
+   <LINK REL="Next"  HREF="004325.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Data Oriented Programming, Beyond Records</H1>
+    <B>Brian Goetz</B> 
+    <A HREF="mailto:amber-spec-experts%40openjdk.org?Subject=Re%3A%20Data%20Oriented%20Programming%2C%20Beyond%20Records&In-Reply-To=%3C51739d3f-df00-47bd-a001-08b409f64532%40oracle.com%3E"
+       TITLE="Data Oriented Programming, Beyond Records">brian.goetz at oracle.com
+       </A><BR>
+    <I>Sun Jan 18 01:00:19 UTC 2026</I>
+    <P><UL>
+        <LI>Previous message (by thread): <A HREF="004323.html">Data Oriented Programming, Beyond Records
+</A></li>
+        <LI>Next message (by thread): <A HREF="004325.html">Data Oriented Programming, Beyond Records
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#4324">[ date ]</a>
+              <a href="thread.html#4324">[ thread ]</a>
+              <a href="subject.html#4324">[ subject ]</a>
+              <a href="author.html#4324">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>In reality, the deconstructor is not a method at all.
+
+When we match:
+
+ &#160; &#160; x instanceof R(P, Q)
+
+we first ask `instanceof R`, and if that succeeds, we call the accessors 
+for the first two components.&#160; The accessors are instance methods, but 
+the deconstructor is not embodied as a method.&#160; This is true for 
+carriers as well as for records.
+
+On 1/17/2026 5:09 PM, <A HREF="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">forax at univ-mlv.fr</A> wrote:
+&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> ------------------------------------------------------------------------
+</I>&gt;<i>
+</I>&gt;<i>     *From: *&quot;Viktor Klang&quot; &lt;<A HREF="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">viktor.klang at oracle.com</A>&gt;
+</I>&gt;<i>     *To: *&quot;Remi Forax&quot; &lt;<A HREF="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">forax at univ-mlv.fr</A>&gt;, &quot;Brian Goetz&quot;
+</I>&gt;<i>     &lt;<A HREF="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">brian.goetz at oracle.com</A>&gt;
+</I>&gt;<i>     *Cc: *&quot;amber-spec-experts&quot; &lt;<A HREF="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">amber-spec-experts at openjdk.java.net</A>&gt;
+</I>&gt;<i>     *Sent: *Saturday, January 17, 2026 5:00:41 PM
+</I>&gt;<i>     *Subject: *Re: Data Oriented Programming, Beyond Records
+</I>&gt;<i>
+</I>&gt;<i>     Just a quick note regarding the following, given my experience in
+</I>&gt;<i>     this area:
+</I>&gt;<i>
+</I>&gt;<i>     On 2026-01-17 11:36, Remi Forax wrote:
+</I>&gt;<i>
+</I>&gt;<i>         A de-constructor becomes an instance method that must return a
+</I>&gt;<i>         carrier class/carrier interface, a type that has the
+</I>&gt;<i>         information to be destructured and the structure has to match
+</I>&gt;<i>         the one defined by the type.
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> Hello Viktor,
+</I>&gt;<i> thanks to bring back that point,
+</I>&gt;<i>
+</I>&gt;<i>     This simply *does not work* as a deconstructor cannot be an
+</I>&gt;<i>     instance-method just like a constructor cannot be an instance
+</I>&gt;<i>     method: It strictly belongs to the type itself (not the hierarchy) and
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> It can work as you said for a concrete type, but for an abstract type, 
+</I>&gt;<i> you need to go from the abstract definition to the concrete one,
+</I>&gt;<i> if you do not want to re-invent the wheel here, the deconstructor has 
+</I>&gt;<i> to be an abstract instance method.
+</I>&gt;<i>
+</I>&gt;<i> For example, with a non-public named implementation
+</I>&gt;<i>
+</I>&gt;<i> interface Pair&lt;F, S&gt;(F first, S second) {
+</I>&gt;<i> &#160; public &lt;F,S&gt; Pair&lt;F,S&gt; of(F first, S second) {
+</I>&gt;<i> &#160; &#160; record Impl&lt;F, S&gt;(F first, S second) implements Pair&lt;F, S&gt;{ }
+</I>&gt;<i> &#160; &#160; return new Impl&lt;&gt;(first, second);
+</I>&gt;<i> &#160; }
+</I>&gt;<i> }
+</I>&gt;<i>
+</I>&gt;<i> inside Pair, there is no concrete field first and second, so you need 
+</I>&gt;<i> a way to extract them from the implementation.
+</I>&gt;<i>
+</I>&gt;<i> This can be implemented either using accessors (first() and second()) 
+</I>&gt;<i> but you have a problem if you want your implementation to be mutable 
+</I>&gt;<i> and synchronized on a lock (because the instance can be changed in 
+</I>&gt;<i> between the call to first() and the call to second()) or you can have 
+</I>&gt;<i> one abstract method, the deconstructor.
+</I>&gt;<i>
+</I>&gt;<i>     it doesn't play well with implementing multiple interfaces (name
+</I>&gt;<i>     clashing), and interacts poorly with overload resolution (instead
+</I>&gt;<i>     of choosing most-specific, you need to select a specific point in
+</I>&gt;<i>     the hierarchy to call the method). 
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> It depends on the compiler translation, but if you limit yourself to 
+</I>&gt;<i> one destructor per class (the dual of the canonical constructor), the 
+</I>&gt;<i> deconstructor can be desugared to one instance method that takes 
+</I>&gt;<i> nothing and return java.lang.Object, so no name clash and no problem 
+</I>&gt;<i> of overloading (because overloading is not allowed, you have to use 
+</I>&gt;<i> '_' at use site).
+</I>&gt;<i>
+</I>&gt;<i>     -- 
+</I>&gt;<i>     Cheers,
+</I>&gt;<i>     &#8730;
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> regards,
+</I>&gt;<i> R&#233;mi
+</I>&gt;<i>
+</I>&gt;<i>     Viktor Klang
+</I>&gt;<i>     Software Architect, Java Platform Group
+</I>&gt;<i>     Oracle
+</I>&gt;<i>
+</I>&gt;<i>
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="https://mail.openjdk.org/pipermail/amber-spec-experts/attachments/20260117/304d916d/attachment-0001.htm">https://mail.openjdk.org/pipermail/amber-spec-experts/attachments/20260117/304d916d/attachment-0001.htm</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message (by thread): <A HREF="004323.html">Data Oriented Programming, Beyond Records
+</A></li>
+	<LI>Next message (by thread): <A HREF="004325.html">Data Oriented Programming, Beyond Records
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#4324">[ date ]</a>
+              <a href="thread.html#4324">[ thread ]</a>
+              <a href="subject.html#4324">[ subject ]</a>
+              <a href="author.html#4324">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">More information about the amber-spec-experts
+mailing list</a><br>
+<script type="text/javascript"  src="/6vgIx/h08T/dssi/53PN8X/3/9r3wmr4Q9fVhbh/PjhiD35gAgo/dylSfH/kCYGEB"></script></body></html>
