@@ -105,7 +105,7 @@ jib {
         image = "azul/zulu-openjdk:25-jre"
     }
     to {
-        image = gcpProjectId.map { "gcr.io/$it/fancy-mail" }.orElse("fancy-mail")
+        image = gcpProjectId.map { "gcr.io/$it/fancy-mail" }.getOrElse("fancy-mail")
         tags = setOf("latest", version.toString())
     }
     container {
