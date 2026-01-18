@@ -2,7 +2,7 @@ micronaut:
   application:
     name: fancy-mail
   server:
-    port: 8080
+    port: ${PORT:8080}
 
   http:
     client:

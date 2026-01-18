@@ -10,6 +10,7 @@
 plugins {
     alias(libs.plugins.micronaut.application)
     alias(libs.plugins.jte)
+    alias(libs.plugins.jib)
 }
 
 version = "0.1.0"
@@ -94,4 +95,27 @@ tasks.named<Test>("test") {
 // Fix task dependency for JTE and Micronaut's classpath inspector
 tasks.named("inspectRuntimeClasspath") {
     dependsOn(tasks.named("generateJte"))
+}
+
+// Jib configuration for Google Cloud Run deployment
+val gcpProjectId = providers.gradleProperty("gcpProjectId")
+
+jib {
+    from {
+        image = "azul/zulu-openjdk:25-jre"
+    }
+    to {
+        image = gcpProjectId.map { "gcr.io/$it/fancy-mail" }.orElse("fancy-mail")
+        tags = setOf("latest", version.toString())
+    }
+    container {
+        ports = listOf("8080")
+        environment = mapOf(
+            "MICRONAUT_ENVIRONMENTS" to "cloud"
+        )
+        jvmFlags = listOf(
+            "-XX:+UseContainerSupport",
+            "-XX:MaxRAMPercentage=75.0"
+        )
+    }
 }

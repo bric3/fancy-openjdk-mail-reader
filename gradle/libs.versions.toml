@@ -7,6 +7,7 @@ flexmark = "0.64.8"
 caffeine = "3.1.8"
 jte = "3.1.15"
 logback = "1.5.15"
+jib = "3.5.2"
 
 [libraries]
 # Micronaut
@@ -42,3 +43,4 @@ junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine" }
 micronaut-application = { id = "io.micronaut.application", version.ref = "micronaut" }
 micronaut-aot = { id = "io.micronaut.aot", version.ref = "micronaut" }
 jte = { id = "gg.jte.gradle", version.ref = "jte" }
+jib = { id = "com.google.cloud.tools.jib", version.ref = "jib" }
