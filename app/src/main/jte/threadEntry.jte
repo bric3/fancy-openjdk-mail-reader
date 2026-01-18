@@ -22,7 +22,8 @@
         @if(isCurrent)
         <span class="thread-current-marker"><i class="fa-solid fa-arrow-right"></i></span>
         @endif
-        <a href="${url}" class="thread-link${isCurrent ? " current" : ""}">
+        <a href="${url}" class="thread-link${isCurrent ? " current" : ""}"
+           hx-get="${url}" hx-target="#mail-container" hx-select="#mail-container" hx-swap="outerHTML" hx-push-url="true">
             @if(displaySubject != null)
             <span class="thread-subject">${displaySubject}</span>
             @endif

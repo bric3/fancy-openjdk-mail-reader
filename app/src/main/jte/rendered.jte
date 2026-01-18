@@ -577,7 +577,7 @@
         <a href="/">&#8592; ${msg.back()}</a>
     </div>
 
-    <div class="container">
+    <div id="mail-container" class="container">
         @if(error != null)
             <div class="error">
                 <strong>${msg.errorLabel()}</strong> ${error}
@@ -591,6 +591,8 @@
             <p><a href="/">&#8592; ${msg.errorGoback()}</a></p>
         @else
             <h1>${mail.subject()}</h1>
+
+            @template.threadTree(threadContext = threadContext, msg = msg, isOpen = threadOpen, devMode = devMode)
 
             <div class="meta">
                 <div class="meta-item">
@@ -616,12 +618,16 @@
                 <div class="nav-row">
                     <div class="nav-messages">
                         @if(mail.navigation().prevMessage() != null)
-                        <span>&#8592; <a href="${mail.navigation().prevMessage().url()}" class="nav-link">${mail.navigation().prevMessage().title()}</a></span>
+                        !{var prevUrl = mail.navigation().prevMessage().url() + "?thread=open";}
+                        <span>&#8592; <a href="${prevUrl}" class="nav-link"
+                            hx-get="${prevUrl}" hx-target="#mail-container" hx-select="#mail-container" hx-swap="outerHTML" hx-push-url="true">${mail.navigation().prevMessage().title()}</a></span>
                         @else
                         <span class="nav-link disabled">&#8592; ${msg.navNoPrevious()}</span>
                         @endif
                         @if(mail.navigation().nextMessage() != null)
-                        <span><a href="${mail.navigation().nextMessage().url()}" class="nav-link">${mail.navigation().nextMessage().title()}</a> &#8594;</span>
+                        !{var nextUrl = mail.navigation().nextMessage().url() + "?thread=open";}
+                        <span><a href="${nextUrl}" class="nav-link"
+                            hx-get="${nextUrl}" hx-target="#mail-container" hx-select="#mail-container" hx-swap="outerHTML" hx-push-url="true">${mail.navigation().nextMessage().title()}</a> &#8594;</span>
                         @else
                         <span class="nav-link disabled">${msg.navNoNext()} &#8594;</span>
                         @endif
@@ -645,8 +651,6 @@
             </div>
             @endif
 
-            @template.threadTree(threadContext = threadContext, msg = msg, isOpen = threadOpen, devMode = devMode)
-
             <hr>
 
             <div class="content">
@@ -658,12 +662,16 @@
                 <div class="nav-row">
                     <div class="nav-messages">
                         @if(mail.navigation().prevMessage() != null)
-                        <span>&#8592; <a href="${mail.navigation().prevMessage().url()}" class="nav-link">${mail.navigation().prevMessage().title()}</a></span>
+                        !{var prevUrl = mail.navigation().prevMessage().url() + "?thread=open";}
+                        <span>&#8592; <a href="${prevUrl}" class="nav-link"
+                            hx-get="${prevUrl}" hx-target="#mail-container" hx-select="#mail-container" hx-swap="outerHTML" hx-push-url="true">${mail.navigation().prevMessage().title()}</a></span>
                         @else
                         <span class="nav-link disabled">&#8592; ${msg.navNoPrevious()}</span>
                         @endif
                         @if(mail.navigation().nextMessage() != null)
-                        <span><a href="${mail.navigation().nextMessage().url()}" class="nav-link">${mail.navigation().nextMessage().title()}</a> &#8594;</span>
+                        !{var nextUrl = mail.navigation().nextMessage().url() + "?thread=open";}
+                        <span><a href="${nextUrl}" class="nav-link"
+                            hx-get="${nextUrl}" hx-target="#mail-container" hx-select="#mail-container" hx-swap="outerHTML" hx-push-url="true">${mail.navigation().nextMessage().title()}</a> &#8594;</span>
                         @else
                         <span class="nav-link disabled">${msg.navNoNext()} &#8594;</span>
                         @endif
@@ -699,8 +707,15 @@
         @endif
     </div>
 
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/java.min.js"></script>
-    <script>hljs.highlightAll();</script>
+    <script>
+        hljs.highlightAll();
+        // Re-run highlight.js after HTMX swaps content
+        document.body.addEventListener('htmx:afterSwap', function(event) {
+            hljs.highlightAll();
+        });
+    </script>
 </body>
 </html>
