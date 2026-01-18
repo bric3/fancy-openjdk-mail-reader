@@ -864,6 +864,40 @@ class MailParserTest {
     }
 
     @Test
+    void parse_proseWithJavaKeywords_notTreatedAsCode() {
+        // Prose that mentions Java keywords like "record", "class", "case" should NOT
+        // be treated as code just because the keywords appear. This is common in
+        // discussions about Java features on mailing lists.
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>\n" +
+                "Properties of records:\n" +
+                "\n" +
+                "  - The components are nominal; their names are a committed part of the\n" +
+                "    record's API.\n" +
+                "  - The class is final and cannot extend any other class.\n" +
+                "  - A record component can hold a reference to its containing instance.\n" +
+                "</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // The prose should be preserved as text, not wrapped in code blocks
+        assertThat(parsed.bodyMarkdown())
+                .contains("record's API")
+                .contains("The class is final")
+                .doesNotContain("```\nrecord")
+                .doesNotContain("```\n  record");
+
+        // There should be NO code blocks (keywords alone should not trigger code detection)
+        long fenceCount = parsed.bodyMarkdown().split("```", -1).length - 1;
+        assertThat(fenceCount)
+                .as("Expected no code blocks in prose with Java keywords, but got %d fence markers", fenceCount)
+                .isEqualTo(0);
+    }
+
+    @Test
     void parse_codeInNestedBlockquotes_detectedAsFencedBlock() {
         // Code blocks inside nested blockquotes should be detected and fenced
         // This tests deeply nested blockquotes like "> > >" with indented code

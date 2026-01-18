@@ -904,15 +904,20 @@ public class MailParser {
         return false;
     }
 
-    // Pattern for detecting code-like content
-    // Java keywords, operators, and common code patterns
-    // Note: `;$` was removed as it's too broad - prose can end with semicolons too
-    // Most code lines ending with ; also have other indicators (keywords, parens, etc.)
-    private static final Pattern CODE_PATTERN = Pattern.compile(
+    // Pattern for detecting code-like syntax (operators, braces, etc.)
+    // These are reliable indicators of code that rarely appear in prose
+    // Note: `;$` (semicolon at end of line) was intentionally excluded because
+    // prose can end with semicolons too (e.g., list items in discussions)
+    private static final Pattern CODE_SYNTAX_PATTERN = Pattern.compile(
+            "->|=>|==|!=|<=|>=|&&|\\|\\||\\{|\\}|\\(.*\\)|//|/\\*|\\*/|\\+\\+|--"
+    );
+
+    // Pattern for Java keywords - these alone are NOT enough to identify code
+    // because prose about Java naturally uses words like "record", "class", "case"
+    private static final Pattern CODE_KEYWORD_PATTERN = Pattern.compile(
             "\\b(case|switch|if|else|for|while|do|return|break|continue|class|interface|enum|record|" +
             "void|int|long|double|float|boolean|char|byte|short|var|final|static|public|private|protected|" +
-            "new|null|true|false|this|super|throws?|try|catch|finally|instanceof|extends|implements)\\b|" +
-            "->|=>|==|!=|<=|>=|&&|\\|\\||\\{|\\}|\\(.*\\)|//|/\\*|\\*/|\\+\\+|--"
+            "new|null|true|false|this|super|throws?|try|catch|finally|instanceof|extends|implements)\\b"
     );
 
     /**
@@ -971,9 +976,20 @@ public class MailParser {
 
     /**
      * Heuristic check if a line looks like code based on common patterns.
+     * <p>
+     * A line is considered code if it has:
+     * 1. Code syntax/operators (reliable indicators like ->, {}, (), etc.), OR
+     * 2. Keywords COMBINED with syntax (keywords alone are not enough because
+     *    prose about Java naturally uses words like "record", "class", "case")
      */
     private boolean looksLikeCode(String line) {
-        return CODE_PATTERN.matcher(line).find();
+        boolean hasSyntax = CODE_SYNTAX_PATTERN.matcher(line).find();
+        if (hasSyntax) {
+            return true;
+        }
+        // Keywords alone are not enough - require syntax as well
+        // This prevents "record's API" from being treated as code
+        return false;
     }
 
     // Maximum length for an orphan fragment (short word/phrase pushed to next line)
