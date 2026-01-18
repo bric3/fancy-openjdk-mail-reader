@@ -94,6 +94,10 @@ public class Messages {
         private String footerMailingList = "mailing list";
         private String footerViewMarkdown = "View Markdown";
         private String footerViewOriginal = "View Original";
+        private String threadTitle = "Thread";
+        private String threadToggle = "messages in thread";
+        private String threadCurrent = "Current message";
+        private String threadMerkleRoot = "Merkle root:";
 
         public String getBack() { return back; }
         public void setBack(String back) { this.back = back; }
@@ -131,6 +135,14 @@ public class Messages {
         public void setFooterViewMarkdown(String footerViewMarkdown) { this.footerViewMarkdown = footerViewMarkdown; }
         public String getFooterViewOriginal() { return footerViewOriginal; }
         public void setFooterViewOriginal(String footerViewOriginal) { this.footerViewOriginal = footerViewOriginal; }
+        public String getThreadTitle() { return threadTitle; }
+        public void setThreadTitle(String threadTitle) { this.threadTitle = threadTitle; }
+        public String getThreadToggle() { return threadToggle; }
+        public void setThreadToggle(String threadToggle) { this.threadToggle = threadToggle; }
+        public String getThreadCurrent() { return threadCurrent; }
+        public void setThreadCurrent(String threadCurrent) { this.threadCurrent = threadCurrent; }
+        public String getThreadMerkleRoot() { return threadMerkleRoot; }
+        public void setThreadMerkleRoot(String threadMerkleRoot) { this.threadMerkleRoot = threadMerkleRoot; }
 
         // Template-friendly accessors
         public String back() { return back; }
@@ -151,5 +163,9 @@ public class Messages {
         public String footerMailingList() { return footerMailingList; }
         public String footerViewMarkdown() { return footerViewMarkdown; }
         public String footerViewOriginal() { return footerViewOriginal; }
+        public String threadTitle() { return threadTitle; }
+        public String threadToggle() { return threadToggle; }
+        public String threadCurrent() { return threadCurrent; }
+        public String threadMerkleRoot() { return threadMerkleRoot; }
     }
 }

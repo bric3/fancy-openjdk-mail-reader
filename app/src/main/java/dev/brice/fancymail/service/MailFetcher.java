@@ -56,4 +56,17 @@ public class MailFetcher {
         LOG.debug("Fetching path: {}", path);
         return httpClient.toBlocking().retrieve(path);
     }
+
+    /**
+     * Fetches the thread.html page for a mailing list month.
+     *
+     * @param list      the mailing list name (e.g., "amber-spec-experts")
+     * @param yearMonth the year-month (e.g., "2026-January")
+     * @return the HTML content of thread.html
+     */
+    public String fetchThreadPage(String list, String yearMonth) {
+        String path = "/pipermail/" + list + "/" + yearMonth + "/thread.html";
+        LOG.debug("Fetching thread page: {}", path);
+        return httpClient.toBlocking().retrieve(path);
+    }
 }

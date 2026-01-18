@@ -18,6 +18,9 @@ fancymail:
   cache:
     max-size: 1000
     expire-after-write: PT1H  # 1 hour
+  thread-cache:
+    max-size: 100
+    expire-after-write: PT6H  # 6 hours (thread structure changes less frequently)
 
 # UI Messages - can be overridden to customize text
 messages:
@@ -53,3 +56,7 @@ messages:
     footer-mailing-list: mailing list
     footer-view-markdown: View Markdown
     footer-view-original: View Original
+    thread-title: Thread
+    thread-toggle: "messages in thread"
+    thread-current: Current message
+    thread-merkle-root: "Merkle root:"

@@ -45,6 +45,9 @@ dependencies {
     // Caching
     implementation(libs.caffeine)
 
+    // Merkle tree
+    implementation(libs.merkle.tree)
+
     // JTE templates runtime
     implementation(libs.jte)
 
