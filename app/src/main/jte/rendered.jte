@@ -294,6 +294,115 @@
             margin-left: 3px;
             opacity: 0.7;
         }
+        /* Tables */
+        .content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1em 0;
+        }
+        .content th, .content td {
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            text-align: left;
+        }
+        .content th {
+            background: var(--card-bg);
+            font-weight: 600;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin: 1em 0;
+        }
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            body {
+                padding: 20px 12px;
+            }
+            .header {
+                margin: -20px -12px 20px -12px;
+                padding: 15px 12px;
+            }
+            .container {
+                padding: 20px 16px;
+                border-radius: 12px;
+            }
+            h1 {
+                font-size: 1.4em;
+            }
+            .meta {
+                padding: 12px 14px;
+            }
+            .meta-item {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+            }
+            .content pre {
+                padding: 12px;
+                font-size: 0.85em;
+                margin-left: -16px;
+                margin-right: -16px;
+                border-radius: 0;
+                border-left: none;
+                border-right: none;
+            }
+            .content blockquote {
+                margin-left: 0;
+                margin-right: 0;
+                padding: 0.5em 0.75em;
+            }
+            .nav-section {
+                padding: 10px 12px;
+            }
+            .nav-messages {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+            .nav-indexes {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .actions {
+                flex-wrap: wrap;
+            }
+            .actions a {
+                flex: 1 1 auto;
+                text-align: center;
+            }
+            /* Full-width tables on mobile with horizontal scroll */
+            .content table {
+                display: block;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                white-space: nowrap;
+            }
+        }
+        @media (max-width: 480px) {
+            body {
+                padding: 12px 8px;
+            }
+            .header {
+                margin: -12px -8px 16px -8px;
+            }
+            .container {
+                padding: 16px 12px;
+                border-radius: 8px;
+            }
+            h1 {
+                font-size: 1.25em;
+            }
+            .content pre {
+                margin-left: -12px;
+                margin-right: -12px;
+                padding: 10px;
+                font-size: 0.8em;
+            }
+            .meta {
+                font-size: 0.9em;
+            }
+        }
     </style>
 </head>
 <body>

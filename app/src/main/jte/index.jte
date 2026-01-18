@@ -159,6 +159,55 @@
             color: var(--text-secondary);
             font-size: 0.9em;
         }
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            body {
+                padding: 20px 12px;
+            }
+            .container {
+                padding: 24px 20px;
+                border-radius: 12px;
+            }
+            h1 {
+                font-size: 1.6em;
+            }
+            .subtitle {
+                font-size: 1em;
+            }
+            .example code {
+                font-size: 0.85em;
+            }
+        }
+        @media (max-width: 480px) {
+            body {
+                padding: 12px 8px;
+            }
+            .container {
+                padding: 20px 16px;
+                border-radius: 8px;
+            }
+            h1 {
+                font-size: 1.4em;
+            }
+            input[type="url"] {
+                padding: 12px;
+            }
+            button {
+                padding: 12px 20px;
+            }
+            .example {
+                padding: 15px;
+            }
+            .example code {
+                font-size: 0.8em;
+            }
+            .features {
+                gap: 10px;
+            }
+            .feature {
+                padding: 12px;
+            }
+        }
     </style>
 </head>
 <body>
