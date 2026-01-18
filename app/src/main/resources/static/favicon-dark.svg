@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Duke with speech bubble (for dark mode) -->
+  <!-- Small Duke on the left -->
+  <ellipse cx="18" cy="42" rx="10" ry="12" fill="#e0e0e0"/>
+  <ellipse cx="18" cy="32" rx="8" ry="7" fill="#e0e0e0"/>
+  <polygon points="18,28 14,38 22,38" fill="#e44d26"/>
+  <ellipse cx="15" cy="30" rx="2" ry="2.5" fill="#3a3a3a"/>
+  <ellipse cx="21" cy="30" rx="2" ry="2.5" fill="#3a3a3a"/>
+  <circle cx="15.5" cy="30" r="1" fill="white"/>
+  <circle cx="21.5" cy="30" r="1" fill="white"/>
+  <!-- Arm pointing to bubble -->
+  <ellipse cx="28" cy="36" rx="3" ry="5" fill="#e0e0e0" transform="rotate(-45 28 36)"/>
+  <!-- Speech bubble to the right -->
+  <path d="M34 8h22c4 0 7 3 7 7v18c0 4-3 7-7 7h-12l-5 8-3-8h-2c-4 0-7-3-7-7V15c0-4 3-7 7-7z"
+        fill="#8b9fef"/>
+  <!-- Dots in bubble -->
+  <circle cx="40" cy="24" r="3" fill="#1e1e2e"/>
+  <circle cx="50" cy="24" r="3" fill="#1e1e2e"/>
+</svg>
