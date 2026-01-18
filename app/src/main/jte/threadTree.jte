@@ -10,10 +10,11 @@
 @param dev.brice.fancymail.model.ThreadContext threadContext
 @param dev.brice.fancymail.config.Messages.Rendered msg
 @param boolean isOpen = false
+@param boolean devMode = false
 
 @if(threadContext != null && threadContext.threadRoot() != null)
 <div class="thread-section">
-    <details class="thread-details"${isOpen ? " open" : ""}>
+    <details class="thread-details" open="${isOpen}">
         <summary class="thread-summary">
             <span class="thread-title"><i class="fa-solid fa-comments"></i> ${msg.threadTitle()}</span>
             <span class="thread-count">${threadContext.threadMessageCount()} ${msg.threadToggle()}</span>
@@ -22,10 +23,10 @@
             <ul class="thread-tree">
                 @template.threadEntry(entry = threadContext.threadRoot(), currentId = threadContext.currentEntry().id(), list = threadContext.list(), yearMonth = threadContext.yearMonth(), parentSubject = "")
             </ul>
-            @if(threadContext.merkleRootHash() != null)
+            @if(devMode && threadContext.merkleRootHash() != null)
             <div class="thread-merkle">
                 <span class="merkle-label">${msg.threadMerkleRoot()}</span>
-                <code class="merkle-hash">${threadContext.merkleRootHash().substring(0, 16)}...</code>
+                <code class="merkle-hash">${threadContext.merkleRootHash()}</code>
             </div>
             @endif
         </div>

@@ -10,12 +10,14 @@
 @param String title
 @param dev.brice.fancymail.model.ParsedMail mail = null
 @param String error = null
+@param String stackTrace = null
 @param String list = ""
 @param String yearMonth = ""
 @param String id = ""
 @param dev.brice.fancymail.config.Messages.Rendered msg = null
 @param dev.brice.fancymail.model.ThreadContext threadContext = null
 @param boolean threadOpen = false
+@param boolean devMode = false
 
 <!DOCTYPE html>
 <html lang="en">
@@ -230,6 +232,44 @@
             padding: 20px;
             border-radius: 8px;
             margin: 20px 0;
+        }
+        .dev-stack-trace {
+            margin: 15px 0;
+            background: var(--code-bg);
+            border: 1px solid var(--code-border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .dev-stack-trace summary {
+            padding: 10px 15px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-secondary);
+            background: var(--card-bg);
+        }
+        .dev-stack-trace summary:hover {
+            background: var(--action-hover);
+        }
+        .stack-trace-content {
+            margin: 0;
+            padding: 15px;
+            font-size: 0.8em;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .dev-info {
+            margin-top: 10px;
+            padding: 8px 12px;
+            background: var(--accent-light);
+            border-left: 3px solid var(--accent);
+            border-radius: 0 4px 4px 0;
+            font-size: 0.85em;
+            color: var(--text-secondary);
+        }
+        .dev-info code {
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.9em;
         }
         .actions {
             display: flex;
@@ -542,6 +582,12 @@
             <div class="error">
                 <strong>${msg.errorLabel()}</strong> ${error}
             </div>
+            @if(devMode && stackTrace != null)
+            <details class="dev-stack-trace">
+                <summary>Stack Trace (dev mode)</summary>
+                <pre class="stack-trace-content">${stackTrace}</pre>
+            </details>
+            @endif
             <p><a href="/">&#8592; ${msg.errorGoback()}</a></p>
         @else
             <h1>${mail.subject()}</h1>
@@ -599,7 +645,7 @@
             </div>
             @endif
 
-            @template.threadTree(threadContext = threadContext, msg = msg, isOpen = threadOpen)
+            @template.threadTree(threadContext = threadContext, msg = msg, isOpen = threadOpen, devMode = devMode)
 
             <hr>
 

@@ -49,6 +49,9 @@ public class FancyMailCommand implements Callable<Integer> {
     @Option(names = {"--open"}, description = "Open browser automatically in server mode")
     private boolean openBrowser;
 
+    @Option(names = {"-d", "--dev"}, description = "Enable development mode (shows debug info)")
+    private boolean devMode;
+
     @Inject
     private MailService mailService;
 

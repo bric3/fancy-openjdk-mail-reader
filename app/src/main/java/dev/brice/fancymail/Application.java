@@ -26,6 +26,7 @@ public class Application {
         Mode mode = determineMode(args);
         int port = extractPort(args);
         boolean openBrowser = hasFlag(args, "--open");
+        boolean devMode = hasFlag(args, "-d", "--dev");
 
         switch (mode) {
             case CLI -> {
@@ -36,6 +37,11 @@ public class Application {
             case SERVER -> {
                 // Server mode - start Micronaut HTTP server
                 System.setProperty("micronaut.server.port", String.valueOf(port));
+                System.setProperty("fancymail.dev-mode", String.valueOf(devMode));
+
+                if (devMode) {
+                    System.out.println("Development mode enabled - debug info will be shown");
+                }
 
                 // Determine the URL to open
                 String browserUrl = "http://localhost:" + port;

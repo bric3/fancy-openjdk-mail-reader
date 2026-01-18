@@ -9,6 +9,7 @@
  */
 package dev.brice.fancymail.controller;
 
+import dev.brice.fancymail.config.DevModeConfig;
 import dev.brice.fancymail.config.Messages.Index;
 import dev.brice.fancymail.config.Messages.Rendered;
 import dev.brice.fancymail.model.MailPath;
@@ -32,6 +33,8 @@ import io.micronaut.views.View;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
@@ -49,12 +52,14 @@ public class MailController {
     private final ThreadService threadService;
     private final Index indexMessages;
     private final Rendered renderedMessages;
+    private final DevModeConfig devModeConfig;
 
-    public MailController(MailService mailService, ThreadService threadService, Index indexMessages, Rendered renderedMessages) {
+    public MailController(MailService mailService, ThreadService threadService, Index indexMessages, Rendered renderedMessages, DevModeConfig devModeConfig) {
         this.mailService = mailService;
         this.threadService = threadService;
         this.indexMessages = indexMessages;
         this.renderedMessages = renderedMessages;
+        this.devModeConfig = devModeConfig;
     }
 
     /**
@@ -65,7 +70,8 @@ public class MailController {
     public Map<String, Object> index() {
         return Map.of(
                 "title", "Fancy Mail - OpenJDK Mailing List Beautifier",
-                "msg", indexMessages
+                "msg", indexMessages,
+                "devMode", devModeConfig.enabled()
         );
     }
 
@@ -123,14 +129,24 @@ public class MailController {
             model.put("msg", renderedMessages);
             model.put("threadContext", threadContext);
             model.put("threadOpen", threadOpen);
+            model.put("devMode", devModeConfig.enabled());
             return model;
         } catch (Exception e) {
             LOG.error("Error rendering mail: {}/{}/{}", list, yearMonth, id, e);
-            return Map.of(
-                    "title", "Error",
-                    "error", "Failed to fetch or parse mail: " + e.getMessage(),
-                    "msg", renderedMessages
-            );
+            String errorMessage = "Failed to fetch or parse mail: " + e.getMessage();
+            String stackTrace = null;
+            if (devModeConfig.enabled()) {
+                StringWriter sw = new StringWriter();
+                e.printStackTrace(new PrintWriter(sw));
+                stackTrace = sw.toString();
+            }
+            Map<String, Object> errorModel = new HashMap<>();
+            errorModel.put("title", "Error");
+            errorModel.put("error", errorMessage);
+            errorModel.put("stackTrace", stackTrace);
+            errorModel.put("msg", renderedMessages);
+            errorModel.put("devMode", devModeConfig.enabled());
+            return errorModel;
         }
     }
 
