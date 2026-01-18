@@ -1,0 +1,178 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Amber features 2026
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:amber-spec-experts%40openjdk.org?Subject=Re%3A%20Amber%20features%202026&In-Reply-To=%3C474538796.15268341.1768414646795.JavaMail.zimbra%40univ-eiffel.fr%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="004306.html">
+   <LINK REL="Next"  HREF="004310.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Amber features 2026</H1>
+    <B>Remi Forax</B> 
+    <A HREF="mailto:amber-spec-experts%40openjdk.org?Subject=Re%3A%20Amber%20features%202026&In-Reply-To=%3C474538796.15268341.1768414646795.JavaMail.zimbra%40univ-eiffel.fr%3E"
+       TITLE="Amber features 2026">forax at univ-mlv.fr
+       </A><BR>
+    <I>Wed Jan 14 18:17:26 UTC 2026</I>
+    <P><UL>
+        <LI>Previous message (by thread): <A HREF="004306.html">Amber features 2026
+</A></li>
+        <LI>Next message (by thread): <A HREF="004310.html">Amber features 2026
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#4308">[ date ]</a>
+              <a href="thread.html#4308">[ thread ]</a>
+              <a href="subject.html#4308">[ subject ]</a>
+              <a href="author.html#4308">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>----- Original Message -----
+&gt;<i> From: &quot;Gavin Bierman&quot; &lt;<A HREF="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">gavin.bierman at oracle.com</A>&gt;
+</I>&gt;<i> To: &quot;amber-spec-experts&quot; &lt;<A HREF="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">amber-spec-experts at openjdk.java.net</A>&gt;
+</I>&gt;<i> Sent: Saturday, January 10, 2026 12:08:05 AM
+</I>&gt;<i> Subject: Amber features 2026
+</I>
+&gt;<i> Dear spec experts,
+</I>&gt;<i> 
+</I>&gt;<i> Happy New Year to you all! We thought this was a good time to share you some of
+</I>&gt;<i> the thinking regarding Amber features for 2026.
+</I>&gt;<i> 
+</I>&gt;<i> Currently we have one feature in preview - Primitive Patterns. We&#8217;d love to get
+</I>&gt;<i> more feedback on this feature - please keep kicking the tires!
+</I>&gt;<i> 
+</I>&gt;<i> We plan two new features in the near term. Draft JEPs are being worked on and
+</I>&gt;<i> will be released as soon as possible. But here are some brief details while you
+</I>&gt;<i> are waiting for the draft JEPs (in the name of efficiency, *please* let's save
+</I>&gt;<i> discussion for that point).
+</I>&gt;<i> 
+</I>&gt;<i> ## PATTERN ASSIGNMENT
+</I>&gt;<i> 
+</I>&gt;<i> Pattern matching is an inherently partial process: a value either matches a
+</I>&gt;<i> pattern, or it does not. But sometimes, we know that the pattern will always
+</I>&gt;<i> match; and we are using the pattern matching process as a convenient means to
+</I>&gt;<i> disassemble a value, for example:
+</I>&gt;<i> 
+</I>&gt;<i>    record ColorPoint(int x, int y, RGB color) {}
+</I>&gt;<i>    
+</I>&gt;<i>    void somethingImportant(ColorPoint cp) {
+</I>&gt;<i>        if (cp instanceof ColorPoint(var x, var y, var c)) {
+</I>&gt;<i>            // important code
+</I>&gt;<i>        }
+</I>&gt;<i>    }
+</I>&gt;<i> 
+</I>&gt;<i> The use of pattern matching is great, but the fact that we have to use it in a
+</I>&gt;<i> conditional statement is annoying. It&#8217;s clutter, and worse, it is making
+</I>&gt;<i> something known by the developer and compiler look as if it were unknown; and,
+</I>&gt;<i> as a consequence, the important code ends up being indented and the scope of
+</I>&gt;<i> the pattern variables is limited to the then block. The indent-adverse
+</I>&gt;<i> developer may reach for the following, but it&#8217;s hardly better:
+</I>&gt;<i> 
+</I>&gt;<i>    void somethingImportant(ColorPoint cp) {
+</I>&gt;<i>        if (!(cp instanceof ColorPoint(var x, var y, var c))) {
+</I>&gt;<i>            return;
+</I>&gt;<i>        }
+</I>&gt;<i>        // important code
+</I>&gt;<i>    }
+</I>&gt;<i> 
+</I>&gt;<i> The real issue here is that both the developer and the compiler can see that the
+</I>&gt;<i> pattern matching is not partial - it will always succeed - but we have no way
+</I>&gt;<i> of recording this semantic information.
+</I>&gt;<i> 
+</I>&gt;<i> What we really want is a form of assignment where the left-hand-side is not a
+</I>&gt;<i> variable but a **pattern**. So, we can rewrite our method as follows:
+</I>&gt;<i> 
+</I>&gt;<i>    void somethingImportant(ColorPoint cp) {
+</I>&gt;<i>        ColorPoint(var x, var y, var c) = cp;    // Pattern Assignment!
+</I>&gt;<i>        // important code
+</I>&gt;<i>    }
+</I>&gt;<i> 
+</I>&gt;<i> Luckily, the spec already defines what it means for a pattern to be
+</I>&gt;<i> unconditional (JLS 14.30.3), so we can build on this
+</I>&gt;<i> 
+</I>&gt;<i>    void hopeful(Object o) {
+</I>&gt;<i>        ColorPoint(var x, var y, var c) = o; // Compile-time error!
+</I>&gt;<i>    }
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>
+Doing the advent of code of last December, I miss that feature :)
+
+But I'm still ambivalent about that feature, for me, it looks like we are missing the big picture.
+
+
+Every time i've talked about this feature in JUGs, one of the questions was why do we need to indicate the type given that the compiler knows it.
+For example
+
+  void hopeful(ColorPoint cp) {
+    (var x, var y, var c) = cp;
+
+    // instead of
+
+    ColorPoint(var x, var y, var c) = cp;
+  }
+  
+
+I wonder if the general question hidden behind is why is it a pattern assignment and not a de-structuration like in other languages.
+
+Let's take another example, in other languages, one can write swap like this
+  int a = ...
+  int b = ...
+  (b, a) = (a, b);
+
+The equivalent would be
+   
+  record Pair(int first, int second) {}
+  int a = ...
+  int b = ...
+  Pair(var x, var y) = new Pair(a, b);
+  a = x;
+  b = y;
+
+Or should we support assignment without the creation of new bindings ?
+
+  record Pair(int first, int second) {}
+  int a = ...
+  int b = ...
+  Pair(b, a) = new Pair(a, b);
+
+Or maybe, this feature should be named pattern declaration and not pattern assignment ?
+
+
+For me, this feature is about de-structuring assignment but by seeing through the keyhole of patterns, i'm fearing we are missing the big picture here.
+
+regards,
+R&#233;mi
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message (by thread): <A HREF="004306.html">Amber features 2026
+</A></li>
+	<LI>Next message (by thread): <A HREF="004310.html">Amber features 2026
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#4308">[ date ]</a>
+              <a href="thread.html#4308">[ thread ]</a>
+              <a href="subject.html#4308">[ subject ]</a>
+              <a href="author.html#4308">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://mail.openjdk.org/mailman/listinfo/amber-spec-experts">More information about the amber-spec-experts
+mailing list</a><br>
+<script type="text/javascript"  src="/6vgIx/h08T/dssi/53PN8X/3/9r3wmr4Q9fVhbh/PjhiD35gAgo/dylSfH/kCYGEB"></script></body></html>

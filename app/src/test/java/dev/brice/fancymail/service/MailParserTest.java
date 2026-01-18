@@ -13,6 +13,8 @@ import dev.brice.fancymail.model.MailPath;
 import dev.brice.fancymail.model.ParsedMail;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,10 +35,21 @@ class MailParserTest {
         parser = new MailParser(markdownConverter, linkRewriter);
     }
 
-    private String loadFixture(String filename) throws IOException {
-        try (InputStream is = getClass().getResourceAsStream("/fixtures/" + filename)) {
+    private String loadFixture(String path) throws IOException {
+        try (InputStream is = getClass().getResourceAsStream("/fixtures/" + path)) {
             if (is == null) {
-                throw new IOException("Fixture not found: " + filename);
+                throw new IOException("Fixture not found: " + path);
+            }
+            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
+    private String loadExpectedMarkdown(String path) throws IOException {
+        // Replace .html with .md for expected markdown files
+        String mdPath = path.replace(".html", ".md");
+        try (InputStream is = getClass().getResourceAsStream("/fixtures/" + mdPath)) {
+            if (is == null) {
+                throw new IOException("Expected markdown not found: " + mdPath);
             }
             return new String(is.readAllBytes(), StandardCharsets.UTF_8);
         }
@@ -44,7 +57,7 @@ class MailParserTest {
 
     @Test
     void parse_fixture004306_extractsSubject() throws IOException {
-        String html = loadFixture("004306.html");
+        String html = loadFixture("amber-spec-experts/2026-January/004306.html");
         MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004306");
 
         ParsedMail parsed = parser.parse(html, mailPath);
@@ -54,7 +67,7 @@ class MailParserTest {
 
     @Test
     void parse_fixture004306_extractsDate() throws IOException {
-        String html = loadFixture("004306.html");
+        String html = loadFixture("amber-spec-experts/2026-January/004306.html");
         MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004306");
 
         ParsedMail parsed = parser.parse(html, mailPath);
@@ -65,7 +78,7 @@ class MailParserTest {
 
     @Test
     void parse_fixture004306_extractsEmail() throws IOException {
-        String html = loadFixture("004306.html");
+        String html = loadFixture("amber-spec-experts/2026-January/004306.html");
         MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004306");
 
         ParsedMail parsed = parser.parse(html, mailPath);
@@ -75,7 +88,7 @@ class MailParserTest {
 
     @Test
     void parse_fixture004306_extractsList() throws IOException {
-        String html = loadFixture("004306.html");
+        String html = loadFixture("amber-spec-experts/2026-January/004306.html");
         MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004306");
 
         ParsedMail parsed = parser.parse(html, mailPath);
@@ -85,7 +98,7 @@ class MailParserTest {
 
     @Test
     void parse_fixture004306_extractsOriginalUrl() throws IOException {
-        String html = loadFixture("004306.html");
+        String html = loadFixture("amber-spec-experts/2026-January/004306.html");
         MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004306");
 
         ParsedMail parsed = parser.parse(html, mailPath);
@@ -96,7 +109,7 @@ class MailParserTest {
 
     @Test
     void parse_fixture004306_bodyContainsContent() throws IOException {
-        String html = loadFixture("004306.html");
+        String html = loadFixture("amber-spec-experts/2026-January/004306.html");
         MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004306");
 
         ParsedMail parsed = parser.parse(html, mailPath);
@@ -107,7 +120,7 @@ class MailParserTest {
 
     @Test
     void parse_fixture004307_extractsSubject() throws IOException {
-        String html = loadFixture("004307.html");
+        String html = loadFixture("amber-spec-experts/2026-January/004307.html");
         MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004307");
 
         ParsedMail parsed = parser.parse(html, mailPath);
@@ -117,7 +130,7 @@ class MailParserTest {
 
     @Test
     void parse_fixture004307_extractsDate() throws IOException {
-        String html = loadFixture("004307.html");
+        String html = loadFixture("amber-spec-experts/2026-January/004307.html");
         MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004307");
 
         ParsedMail parsed = parser.parse(html, mailPath);
@@ -127,7 +140,7 @@ class MailParserTest {
 
     @Test
     void parse_fixture004307_extractsEmail() throws IOException {
-        String html = loadFixture("004307.html");
+        String html = loadFixture("amber-spec-experts/2026-January/004307.html");
         MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004307");
 
         ParsedMail parsed = parser.parse(html, mailPath);
@@ -137,7 +150,7 @@ class MailParserTest {
 
     @Test
     void parse_fixture004307_bodyContainsCarrierClasses() throws IOException {
-        String html = loadFixture("004307.html");
+        String html = loadFixture("amber-spec-experts/2026-January/004307.html");
         MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004307");
 
         ParsedMail parsed = parser.parse(html, mailPath);
@@ -798,7 +811,7 @@ class MailParserTest {
     @Test
     void parse_fixture004317_codeInsideListItems() throws IOException {
         // Real fixture from https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004317.html
-        String html = loadFixture("004317.html");
+        String html = loadFixture("amber-spec-experts/2026-January/004317.html");
         MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004317");
 
         ParsedMail parsed = parser.parse(html, mailPath);
@@ -937,7 +950,7 @@ class MailParserTest {
     void parse_fixture004323_columnZeroCodeDetectedAsFenced() throws IOException {
         // Real fixture from https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004323.html
         // Tests that code at column 0 (no indentation) is detected and fenced
-        String html = loadFixture("004323.html");
+        String html = loadFixture("amber-spec-experts/2026-January/004323.html");
         MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004323");
 
         ParsedMail parsed = parser.parse(html, mailPath);
@@ -960,7 +973,7 @@ class MailParserTest {
     void parse_fixture004324_quotedEmailHeadersNotTreatedAsCode() throws IOException {
         // Real fixture from https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004324.html
         // Tests that quoted email headers (*From: *, *To: *, etc.) are NOT treated as code
-        String html = loadFixture("004324.html");
+        String html = loadFixture("amber-spec-experts/2026-January/004324.html");
         MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004324");
 
         ParsedMail parsed = parser.parse(html, mailPath);
@@ -1082,4 +1095,24 @@ class MailParserTest {
         // The note text should also be in the blockquote
         assertThat(markdown).contains("Just a quick note");
     }
+
+    @ParameterizedTest(name = "fixture {0} markdown matches expected")
+    @ValueSource(strings = {
+            "amber-spec-experts/2026-January/004306",
+            "amber-spec-experts/2026-January/004307",
+            "amber-spec-experts/2026-January/004308",
+            "amber-spec-experts/2026-January/004323",
+            "amber-spec-experts/2026-January/004324"
+    })
+    void parse_fixture_markdownMatchesExpected(String fixture) throws IOException {
+        String html = loadFixture(fixture + ".html");
+        String expectedMarkdown = loadExpectedMarkdown(fixture + ".html");
+        String[] parts = fixture.split("/");
+        MailPath mailPath = new MailPath(parts[0], parts[1], parts[2]);
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        assertThat(parsed.bodyMarkdown()).isEqualTo(expectedMarkdown);
+    }
+
 }

@@ -74,7 +74,7 @@ class MailServiceTest {
 
     @Test
     void getMail_cacheMiss_fetchesAndCaches() throws IOException {
-        String html = loadFixture("004306.html");
+        String html = loadFixture("amber-spec-experts/2026-January/004306.html");
         MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004306");
 
         when(mailCache.get(mailPath)).thenReturn(Optional.empty());
@@ -89,7 +89,7 @@ class MailServiceTest {
     @Test
     void getMail_byUrl_parsesAndFetches() throws IOException {
         String url = "https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004306.html";
-        String html = loadFixture("004306.html");
+        String html = loadFixture("amber-spec-experts/2026-January/004306.html");
 
         when(mailCache.get(any(MailPath.class))).thenReturn(Optional.empty());
         when(mailFetcher.fetch("amber-spec-experts", "2026-January", "004306")).thenReturn(html);
@@ -101,7 +101,7 @@ class MailServiceTest {
 
     @Test
     void getMail_byComponents_fetchesCorrectly() throws IOException {
-        String html = loadFixture("004307.html");
+        String html = loadFixture("amber-spec-experts/2026-January/004307.html");
 
         when(mailCache.get(any(MailPath.class))).thenReturn(Optional.empty());
         when(mailFetcher.fetch("amber-spec-experts", "2026-January", "004307")).thenReturn(html);
@@ -114,7 +114,7 @@ class MailServiceTest {
     @Test
     void getMailAsMarkdown_byUrl_returnsFormattedMarkdown() throws IOException {
         String url = "https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004306.html";
-        String html = loadFixture("004306.html");
+        String html = loadFixture("amber-spec-experts/2026-January/004306.html");
 
         when(mailCache.get(any(MailPath.class))).thenReturn(Optional.empty());
         when(mailFetcher.fetch("amber-spec-experts", "2026-January", "004306")).thenReturn(html);
@@ -130,7 +130,7 @@ class MailServiceTest {
 
     @Test
     void getMailAsMarkdown_byMailPath_returnsFormattedMarkdown() throws IOException {
-        String html = loadFixture("004307.html");
+        String html = loadFixture("amber-spec-experts/2026-January/004307.html");
         MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004307");
 
         when(mailCache.get(mailPath)).thenReturn(Optional.empty());
