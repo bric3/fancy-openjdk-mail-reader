@@ -474,6 +474,11 @@ public class MailParser {
         // be merged into the paragraph above
         content = convertLightlyIndentedCodeToBlocks(content);
 
+        // Insert blank lines when transitioning out of blockquotes
+        // CommonMark uses "lazy continuation" - blockquotes continue until a blank line
+        // Without this, text after a blockquote gets included in the blockquote
+        content = addBlankLinesAfterBlockquotes(content);
+
         // Join lines that were artificially wrapped by pipermail's line length limit
         // This handles orphan short fragments that got pushed to the next line
         content = joinPipermailWrappedLines(content);
@@ -1001,6 +1006,40 @@ public class MailParser {
             "(?i).*(regards|cheers|thanks|thank you|best|sincerely|cordialement|greetings),?\\s*$");
 
     /**
+     * Insert blank lines when transitioning from blockquoted text to non-blockquoted text.
+     * <p>
+     * In CommonMark, blockquotes use "lazy continuation" - a line without the > prefix
+     * is still considered part of the blockquote unless there's a blank line. This method
+     * ensures proper blockquote termination by inserting blank lines at transitions.
+     */
+    private String addBlankLinesAfterBlockquotes(String content) {
+        String[] lines = content.split("\n", -1);
+        StringBuilder result = new StringBuilder();
+
+        for (int i = 0; i < lines.length; i++) {
+            result.append(lines[i]);
+
+            // Check if we need to insert a blank line after this line
+            if (i + 1 < lines.length) {
+                String currentLine = lines[i].stripLeading();
+                String nextLine = lines[i + 1].stripLeading();
+
+                // If current line is a blockquote and next line is not empty and not a blockquote,
+                // insert a blank line to properly terminate the blockquote
+                if (currentLine.startsWith(">") && !nextLine.isEmpty() && !nextLine.startsWith(">")) {
+                    result.append("\n");  // Add extra blank line
+                }
+            }
+
+            if (i < lines.length - 1) {
+                result.append("\n");
+            }
+        }
+
+        return result.toString();
+    }
+
+    /**
      * Join lines that were artificially wrapped by pipermail's line length limit.
      * <p>
      * Pipermail wraps long lines at ~72-76 characters. When a word would exceed the limit,
@@ -1078,6 +1117,12 @@ public class MailParser {
 
         // Not an orphan if it starts with > (blockquote)
         if (line.startsWith(">")) {
+            return false;
+        }
+
+        // Not an orphan if previous line was a blockquote but current line isn't
+        // This is a transition out of quoted text, not a wrapped fragment
+        if (prevLine.stripLeading().startsWith(">")) {
             return false;
         }
 
