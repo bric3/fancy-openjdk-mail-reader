@@ -9,7 +9,10 @@
  */
 package dev.brice.fancymail.model;
 
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Represents the thread context for viewing a specific message.
@@ -51,5 +54,16 @@ public record ThreadContext(
      */
     public int currentDepth() {
         return currentEntry != null ? currentEntry.depth() : 0;
+    }
+
+    /**
+     * Returns the year-month in ISO format (YYYY-MM).
+     */
+    public String yearMonthIso() {
+        if (yearMonth == null) return null;
+        // Parse "2026-January" format and convert to "2026-01"
+        DateTimeFormatter parser = DateTimeFormatter.ofPattern("yyyy-MMMM", Locale.ENGLISH);
+        YearMonth ym = YearMonth.parse(yearMonth, parser);
+        return ym.toString(); // Returns ISO format YYYY-MM
     }
 }

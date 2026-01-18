@@ -16,12 +16,12 @@
 <div class="thread-section">
     <details class="thread-details" open="${isOpen}">
         <summary class="thread-summary">
-            <span class="thread-title"><i class="fa-solid fa-comments"></i> ${msg.threadTitle()}</span>
+            <span class="thread-title"><i class="fa-solid fa-comments"></i> ${msg.threadTitle()} <span class="thread-month">(${threadContext.yearMonthIso()})</span></span>
             <span class="thread-count">${threadContext.threadMessageCount()} ${msg.threadToggle()}</span>
         </summary>
         <div class="thread-content">
             <ul class="thread-tree">
-                @template.threadEntry(entry = threadContext.threadRoot(), currentId = threadContext.currentEntry().id(), list = threadContext.list(), yearMonth = threadContext.yearMonth(), parentSubject = "")
+                @template.threadEntry(entry = threadContext.threadRoot(), currentId = threadContext.currentEntry().id(), list = threadContext.list(), yearMonth = threadContext.yearMonth(), parentSubject = threadContext.threadRoot().subject())
             </ul>
             @if(devMode && threadContext.merkleRootHash() != null)
             <div class="thread-merkle">

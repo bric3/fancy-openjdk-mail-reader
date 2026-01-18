@@ -477,6 +477,11 @@
         .thread-title i {
             color: var(--accent);
         }
+        .thread-month {
+            font-weight: 400;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
         .thread-count {
             font-size: 0.85em;
             color: var(--text-secondary);
