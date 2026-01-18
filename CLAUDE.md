@@ -22,6 +22,12 @@ Fancy Mail is a Micronaut application that fetches and beautifies emails from Op
 # Run in server mode
 ./gradlew run --args="--server"
 
+# Run in dev mode (shows debug info like full Merkle hashes and stack traces)
+./gradlew run --args="--server --dev"
+
+# Run in dev mode with continuous build (auto-recompiles on changes)
+./gradlew --continuous run --args="--server --dev"
+
 # Run tests
 ./gradlew test
 
