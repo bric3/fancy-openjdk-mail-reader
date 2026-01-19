@@ -145,6 +145,7 @@
             padding: 2px 6px;
             border-radius: 4px;
             font-family: 'SF Mono', Monaco, monospace;
+            font-size: clamp(0.65em, 2vw, 0.92em);
             word-break: break-all;
             color: var(--text-primary);
         }
@@ -219,9 +220,6 @@
             .subtitle {
                 font-size: 1em;
             }
-            .example code {
-                font-size: 0.85em;
-            }
         }
         @media (max-width: 480px) {
             body {
@@ -242,9 +240,6 @@
             }
             .example {
                 padding: 15px;
-            }
-            .example code {
-                font-size: 0.8em;
             }
             .features {
                 gap: 10px;
@@ -276,6 +271,20 @@
             <p><code>${msg.formPlaceholder()}</code></p>
         </div>
 
+        @if(mailingLists != null && !mailingLists.isEmpty())
+        <div class="mailing-lists">
+            <h3>Browse Mailing Lists</h3>
+            <div class="mailing-lists-grid">
+                @for(var mailingList : mailingLists)
+                <a href="${paths.toThreadsPath(mailingList.name(), currentMonth)}" class="mailing-list-item">
+                    <div class="mailing-list-name">${mailingList.name()}</div>
+                    <div class="mailing-list-desc">${mailingList.description()}</div>
+                </a>
+                @endfor
+            </div>
+        </div>
+        @endif
+
         <div class="features">
             <div class="feature">
                 <h4>${msg.featureCleanTitle()}</h4>
@@ -290,20 +299,6 @@
                 <p>${msg.featureLinksDesc()}</p>
             </div>
         </div>
-
-        @if(mailingLists != null && !mailingLists.isEmpty())
-        <div class="mailing-lists">
-            <h3>Browse Mailing Lists</h3>
-            <div class="mailing-lists-grid">
-                @for(var mailingList : mailingLists)
-                <a href="${paths.toThreadsPath(mailingList.name(), currentMonth)}" class="mailing-list-item">
-                    <div class="mailing-list-name">${mailingList.name()}</div>
-                    <div class="mailing-list-desc">${mailingList.description()}</div>
-                </a>
-                @endfor
-            </div>
-        </div>
-        @endif
     </div>
 </body>
 </html>
