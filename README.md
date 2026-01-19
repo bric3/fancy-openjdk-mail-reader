@@ -10,9 +10,12 @@ A Micronaut application that fetches and beautifies emails from OpenJDK mailing 
 
 - **CLI Mode**: Convert mailing list URLs to markdown files
 - **Server Mode**: Web UI for browsing beautified emails
+- **Dark/Light Mode**: Automatic theme switching based on system preferences
+- **Thread Navigation**: Browse email threads with tree visualization
 - **Link Rewriting**: Links to other mailing list emails automatically point to rendered versions
-- **In-Memory Caching**: Fetched emails are cached to reduce load on the mailing list server
-- **Code Highlighting**: Syntax highlighting for Java code blocks
+- **In-Memory Caching**: Fetched emails and threads are cached to reduce load on the mailing list server
+- **Code Highlighting**: Syntax highlighting for code blocks
+- **Thread Integrity**: Merkle tree-based verification of thread consistency
 
 ## Screenshots
 
@@ -93,29 +96,44 @@ Get the raw markdown for any email:
 http://localhost:8080/markdown/amber-spec-experts/2026-January/004307.md
 ```
 
+### Thread View (`/threads/{list}/{year-month}`)
+
+Browse all email threads for a given month:
+
+```
+http://localhost:8080/threads/amber-spec-experts/2026-January
+```
+
 ## Project Structure
 
 ```
 app/src/main/java/dev/brice/fancymail/
 ├── Application.java              # Main entry point
 ├── FancyMailCommand.java         # CLI command (Picocli)
-├── controller/
-│   └── MailController.java       # Web endpoints
-├── service/
+├── controller/                   # Web endpoints
+│   ├── MailController.java       # Mail and thread endpoints
+│   └── ErrorController.java      # Error handling
+├── service/                      # Business logic
 │   ├── MailFetcher.java          # HTTP client for fetching emails
 │   ├── MailParser.java           # HTML parsing with Jsoup
 │   ├── MarkdownConverter.java    # HTML to Markdown conversion
 │   ├── LinkRewriter.java         # URL rewriting for proxy
-│   └── MailService.java          # Service orchestration
-├── cache/
-│   └── MailCache.java            # Caffeine in-memory cache
-└── model/
-    ├── MailPath.java             # URL/path parsing
-    └── ParsedMail.java           # Parsed email record
+│   ├── MailService.java          # Mail orchestration
+│   ├── ThreadService.java        # Thread orchestration
+│   ├── ThreadParser.java         # Thread HTML parsing
+│   └── ThreadMerkleService.java  # Thread integrity verification
+├── cache/                        # Caching layer
+│   ├── MailCache.java            # Email cache
+│   └── ThreadCache.java          # Thread cache
+├── config/                       # Configuration classes
+├── model/                        # Domain models
+└── markdown/                     # Flexmark extensions
 
-app/src/main/jte/
-├── index.jte                     # Home page template
-└── rendered.jte                  # Rendered email template
+app/src/main/jte/                 # JTE templates
+├── index.jte                     # Home page
+├── rendered.jte                  # Rendered email view
+├── threads.jte                   # Thread list view
+└── ...                           # Other templates
 
 app/src/main/resources/
 ├── application.yml               # Micronaut configuration
