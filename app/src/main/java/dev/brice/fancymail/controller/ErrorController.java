@@ -10,6 +10,7 @@
 package dev.brice.fancymail.controller;
 
 import dev.brice.fancymail.config.DevModeConfig;
+import io.micronaut.core.io.Writable;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -17,7 +18,7 @@ import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Error;
 import io.micronaut.http.hateoas.JsonError;
-import io.micronaut.views.ModelAndView;
+import io.micronaut.views.ViewsRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,9 +36,12 @@ public class ErrorController {
     private static final Logger LOG = LoggerFactory.getLogger(ErrorController.class);
 
     private final DevModeConfig devModeConfig;
+    private final ViewsRenderer<Map<String, Object>, HttpRequest<?>> viewsRenderer;
 
-    public ErrorController(DevModeConfig devModeConfig) {
+    @SuppressWarnings("unchecked")
+    public ErrorController(DevModeConfig devModeConfig, ViewsRenderer<Map<String, Object>, ?> viewsRenderer) {
         this.devModeConfig = devModeConfig;
+        this.viewsRenderer = (ViewsRenderer<Map<String, Object>, HttpRequest<?>>) viewsRenderer;
     }
 
     @Error(global = true, status = HttpStatus.NOT_FOUND)
@@ -103,9 +107,10 @@ public class ErrorController {
             }
         }
 
+        Writable writable = viewsRenderer.render("error", model, request);
         return HttpResponse.status(status)
                 .contentType(MediaType.TEXT_HTML)
-                .body(new ModelAndView<>("error", model));
+                .body(writable);
     }
 
     private HttpResponse<?> jsonErrorResponse(HttpRequest<?> request, HttpStatus status, String message) {
