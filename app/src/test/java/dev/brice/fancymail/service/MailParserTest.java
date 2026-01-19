@@ -336,7 +336,8 @@ class MailParserTest {
 
     @Test
     void parse_shortLineWithPunctuation_preservesLineBreak() {
-        // Short lines ending with punctuation should have line breaks preserved
+        // Short lines ending with punctuation are preserved as separate lines in markdown
+        // (no soft breaks added - lines are kept as-is from source)
         String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
                 "<H1>Test</H1>" +
                 "<PRE>Hello Gavin,\n" +
@@ -346,14 +347,14 @@ class MailParserTest {
 
         ParsedMail parsed = parser.parse(html, mailPath);
 
-        // Should have a <br> between greeting and message, not merged into single line
-        assertThat(parsed.bodyHtml()).contains("<br");
-        assertThat(parsed.bodyHtml()).doesNotContain("Gavin, healing");
+        // Lines are preserved separately in markdown
+        assertThat(parsed.bodyMarkdown()).contains("Hello Gavin,\n");
+        assertThat(parsed.bodyMarkdown()).doesNotContain("Gavin, healing");
     }
 
     @Test
     void parse_signatureLines_preservesLineBreaks() {
-        // Signature lines like "Best regards," followed by name should preserve breaks
+        // Signature lines followed by name are preserved as separate lines in markdown
         String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
                 "<H1>Test</H1>" +
                 "<PRE>Wishing you a happy and successful 2026!\n" +
@@ -363,9 +364,9 @@ class MailParserTest {
 
         ParsedMail parsed = parser.parse(html, mailPath);
 
-        // Should have line break between wish and name
-        assertThat(parsed.bodyHtml()).contains("<br");
-        assertThat(parsed.bodyHtml()).doesNotContain("2026! Gavin");
+        // Lines are preserved separately in markdown
+        assertThat(parsed.bodyMarkdown()).contains("2026!\n");
+        assertThat(parsed.bodyMarkdown()).doesNotContain("2026! Gavin");
     }
 
     @Test
@@ -687,6 +688,7 @@ class MailParserTest {
     @Test
     void parse_codeBlockInBlockquote_convertedToFencedWithPrefix() {
         // Code blocks inside blockquotes should keep the > prefix
+        // Minimum indentation is stripped, preserving relative indentation
         String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
                 "<H1>Test</H1>" +
                 "<PRE>\n" +
@@ -703,9 +705,12 @@ class MailParserTest {
 
         ParsedMail parsed = parser.parse(html, mailPath);
 
-        // Should have fenced code block with > prefix, preserving original indentation
-        assertThat(parsed.bodyMarkdown()).contains("> ```\n>     void example()");
-        assertThat(parsed.bodyMarkdown()).contains(">     }\n> ```");
+        // Should have fenced code block with > prefix, minimum indentation stripped
+        // Original: 4-space indent for outer, 8-space for inner
+        // After strip: 0-space for outer, 4-space for inner (relative preserved)
+        assertThat(parsed.bodyMarkdown()).contains("> ```\n> void example()");
+        assertThat(parsed.bodyMarkdown()).contains(">     return;");
+        assertThat(parsed.bodyMarkdown()).contains("> }\n> ```");
     }
 
     @Test
@@ -1115,4 +1120,33 @@ class MailParserTest {
         assertThat(parsed.bodyMarkdown()).isEqualTo(expectedMarkdown);
     }
 
+    @Test
+    void parse_mixedIndentCode_preservesRelativeIndentation() {
+        // Code with 2-space outer and 4-space inner indentation
+        String html = "<!DOCTYPE HTML><HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY>" +
+                "<H1>Test</H1>" +
+                "<PRE>\n" +
+                "For example\n" +
+                "\n" +
+                "  void hopeful(ColorPoint cp) {\n" +
+                "    (var x, var y, var c) = cp;\n" +
+                "\n" +
+                "    // instead of\n" +
+                "\n" +
+                "    ColorPoint(var x, var y, var c) = cp;\n" +
+                "  }\n" +
+                "\n" +
+                "Some prose after.\n" +
+                "</PRE>" +
+                "</BODY></HTML>";
+        MailPath mailPath = new MailPath("test-list", "2026-January", "000001");
+
+        ParsedMail parsed = parser.parse(html, mailPath);
+
+        // The code block should preserve relative indentation
+        assertThat(parsed.bodyMarkdown()).contains("```\nvoid hopeful(ColorPoint cp) {");
+        // Inner lines should have 2 spaces relative indentation
+        assertThat(parsed.bodyMarkdown()).contains("  (var x, var y, var c) = cp;");
+        assertThat(parsed.bodyMarkdown()).contains("  ColorPoint(var x, var y, var c) = cp;");
+    }
 }

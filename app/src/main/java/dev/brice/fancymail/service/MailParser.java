@@ -493,15 +493,11 @@ public class MailParser {
         // which prematurely terminates the code block. Re-indent single orphan lines.
         content = fixOrphanContinuationLines(content);
 
-        // Trim trailing whitespace from each line but preserve line breaks
+        // Strip trailing whitespace from each line
         content = content.lines()
                 .map(String::stripTrailing)
                 .reduce((a, b) -> a + "\n" + b)
                 .orElse("");
-
-        // Add soft line breaks (two trailing spaces) to short lines ending with punctuation
-        // This preserves line breaks for greetings like "Hello Gavin," and signatures like "Gavin"
-        content = addSoftBreaksToShortLines(content);
 
         // Remove excessive blank lines (more than 2 consecutive)
         content = content.replaceAll("\n{3,}", "\n\n");
@@ -516,7 +512,12 @@ public class MailParser {
         // This handles email-wrapped code that lost its indentation
         content = convertColumnZeroCodeToFenced(content);
 
-        return content.trim();
+        // Trim and ensure single trailing newline for consistency
+        content = content.trim();
+        if (!content.isEmpty()) {
+            content = content + "\n";
+        }
+        return content;
     }
 
     /**
@@ -843,7 +844,7 @@ public class MailParser {
                                 .append(contentAfterPrefix.trim()).append("\n");
                     } else {
                         // Actually ending the code block
-                        result.append(codeBlock);
+                        result.append(stripMinimumIndentation(codeBlock.toString(), codeBlockPrefix));
                         result.append(formatBlockquotePrefix(codeBlockPrefix)).append("```\n");
                         codeBlock.setLength(0);
                         inIndentedCodeBlock = false;
@@ -864,7 +865,7 @@ public class MailParser {
 
         // Close any remaining code block
         if (inIndentedCodeBlock) {
-            result.append(codeBlock);
+            result.append(stripMinimumIndentation(codeBlock.toString(), codeBlockPrefix));
             result.append(formatBlockquotePrefix(codeBlockPrefix)).append("```");
         }
 
@@ -1302,8 +1303,9 @@ public class MailParser {
         // Flush any remaining code block
         if (consecutiveCodeLines >= 2 && codeBlock.length() > 0) {
             String fencePrefix = currentBlockquotePrefix != null ? formatBlockquotePrefix(currentBlockquotePrefix) : "";
+            String prefix = currentBlockquotePrefix != null ? currentBlockquotePrefix : "";
             result.append(fencePrefix).append("```\n");
-            result.append(codeBlock);
+            result.append(stripMinimumIndentation(codeBlock.toString(), prefix));
             result.append(fencePrefix).append("```");
         } else if (codeBlock.length() > 0) {
             result.append(codeBlock.toString().stripTrailing());
@@ -1319,8 +1321,9 @@ public class MailParser {
                                 int consecutiveCodeLines, String blockquotePrefix) {
         if (consecutiveCodeLines >= 2 && codeBlock.length() > 0) {
             String fencePrefix = blockquotePrefix != null ? formatBlockquotePrefix(blockquotePrefix) : "";
+            String prefix = blockquotePrefix != null ? blockquotePrefix : "";
             result.append(fencePrefix).append("```\n");
-            result.append(codeBlock);
+            result.append(stripMinimumIndentation(codeBlock.toString(), prefix));
             result.append(fencePrefix).append("```\n");
         } else if (codeBlock.length() > 0) {
             result.append(codeBlock);
@@ -1474,6 +1477,86 @@ public class MailParser {
     }
 
     /**
+     * Strip the minimum common indentation from all lines in a code block.
+     * This preserves relative indentation while removing common leading whitespace.
+     * <p>
+     * For example, if all lines have at least 1 space of indentation, that space
+     * is removed from all lines, preserving any additional indentation.
+     *
+     * @param codeBlock the code block content (may include blockquote prefixes)
+     * @param blockquotePrefix the blockquote prefix (e.g., "> ") or empty string
+     * @return the code block with minimum indentation stripped
+     */
+    private String stripMinimumIndentation(String codeBlock, String blockquotePrefix) {
+        if (codeBlock.isEmpty()) {
+            return codeBlock;
+        }
+
+        String[] lines = codeBlock.split("\n", -1);
+        String formattedPrefix = formatBlockquotePrefix(blockquotePrefix);
+        int prefixLen = formattedPrefix.length();
+
+        // Find minimum indentation across all non-empty lines
+        int minIndent = Integer.MAX_VALUE;
+        for (String line : lines) {
+            // Strip the blockquote prefix if present
+            String content = line;
+            if (!formattedPrefix.isEmpty() && line.startsWith(formattedPrefix)) {
+                content = line.substring(prefixLen);
+            } else if (!blockquotePrefix.isEmpty() && line.startsWith(blockquotePrefix)) {
+                content = line.substring(blockquotePrefix.length());
+            }
+
+            // Skip empty lines when calculating minimum indent
+            if (content.trim().isEmpty()) {
+                continue;
+            }
+
+            // Count leading spaces
+            int indent = 0;
+            while (indent < content.length() && content.charAt(indent) == ' ') {
+                indent++;
+            }
+            minIndent = Math.min(minIndent, indent);
+        }
+
+        // If no indentation to strip, return as-is
+        if (minIndent == 0 || minIndent == Integer.MAX_VALUE) {
+            return codeBlock;
+        }
+
+        // Strip minimum indentation from all lines
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
+
+            // Extract content after blockquote prefix
+            String prefix = "";
+            String content = line;
+            if (!formattedPrefix.isEmpty() && line.startsWith(formattedPrefix)) {
+                prefix = formattedPrefix;
+                content = line.substring(prefixLen);
+            } else if (!blockquotePrefix.isEmpty() && line.startsWith(blockquotePrefix)) {
+                prefix = blockquotePrefix;
+                content = line.substring(blockquotePrefix.length());
+            }
+
+            // Strip minimum indentation from content
+            if (content.length() >= minIndent) {
+                result.append(prefix).append(content.substring(minIndent));
+            } else {
+                result.append(prefix).append(content);
+            }
+
+            if (i < lines.length - 1) {
+                result.append("\n");
+            }
+        }
+
+        return result.toString();
+    }
+
+    /**
      * Check if there's more indented code (4+ spaces) in upcoming lines.
      * Used for regular (non-blockquote) code blocks.
      */
@@ -1513,6 +1596,12 @@ public class MailParser {
             "\\w+<[^>]+>"                       // generic type: List<String>
     );
 
+    // Pattern for variable declarations: int x = ..., var y = ..., String s = ...
+    private static final Pattern VARIABLE_DECLARATION_PATTERN = Pattern.compile(
+            "^(int|long|double|float|boolean|char|byte|short|var|String|" +
+            "\\w+(?:<[^>]+>)?)\\s+\\w+\\s*="    // type identifier = (with optional generics)
+    );
+
     // Pattern for Java keywords - these alone are NOT enough to identify code
     // because prose about Java naturally uses words like "record", "class", "case"
     private static final Pattern CODE_KEYWORD_PATTERN = Pattern.compile(
@@ -1537,34 +1626,79 @@ public class MailParser {
      * <p>
      * Lines that look like list items (starting with - or * after indentation)
      * are excluded from this conversion.
+     * <p>
+     * To preserve relative indentation, when we enter a code region (2-3 space line),
+     * we add an offset to ALL subsequent indented lines until the code region ends.
      */
     private String convertLightlyIndentedCodeToBlocks(String content) {
         String[] lines = content.split("\n", -1);
         StringBuilder result = new StringBuilder();
-        boolean previousWasConvertedCode = false;  // Track consecutive code conversions
+        int indentOffset = 0;  // Extra spaces to add to lines in a code region
+        int codeRegionBaseIndent = 0;  // The starting indent level of the code region
 
         for (int i = 0; i < lines.length; i++) {
             String line = lines[i];
             String prevLine = i > 0 ? lines[i - 1] : "";
             String trimmed = line.trim();
 
-            // Check for lines with 2-3 space indentation (not already 4+)
-            // Exclude list items (lines starting with - or * or number followed by space)
+            // Count leading spaces
+            int leadingSpaces = 0;
+            while (leadingSpaces < line.length() && line.charAt(leadingSpaces) == ' ') {
+                leadingSpaces++;
+            }
+
+            // Check for lines with 2-3 space indentation that look like code
             boolean isListItem = trimmed.matches("^([-*]|\\d+\\.)\\s.*");
-            if (line.matches("^ {2,3}\\S.*") && !isListItem && looksLikeCode(trimmed)) {
+            boolean is2to3SpaceCode = line.matches("^ {2,3}\\S.*") && !isListItem && looksLikeCode(trimmed);
+
+            if (is2to3SpaceCode && indentOffset == 0) {
+                // Starting a new code region
+                codeRegionBaseIndent = leadingSpaces;
+                indentOffset = 4 - leadingSpaces;  // How much to add to reach 4 spaces
+
                 // Add blank line before code block if:
                 // - Previous line is not blank
                 // - Previous line is not already an indented code block (4+ spaces)
-                // - Previous line was not just converted to code (consecutive code lines)
-                if (!prevLine.isBlank() && !prevLine.startsWith("    ") && !previousWasConvertedCode) {
+                if (!prevLine.isBlank() && !prevLine.startsWith("    ")) {
                     result.append("\n");
                 }
-                // Convert to 4-space indentation for proper code block
-                result.append("    ").append(trimmed);
-                previousWasConvertedCode = true;
+
+                // Add the line with offset
+                result.append(" ".repeat(leadingSpaces + indentOffset)).append(trimmed);
+            } else if (indentOffset > 0) {
+                // We're in a code region
+
+                // Check if this line ends the code region:
+                // - Non-indented, non-blank line that doesn't look like code
+                // - Or a line with less indentation than the base (back to prose)
+                boolean isBlankLine = trimmed.isEmpty();
+                boolean isContinuedCode = leadingSpaces >= codeRegionBaseIndent ||
+                        (leadingSpaces > 0 && looksLikeCode(trimmed));
+
+                if (!isBlankLine && !isContinuedCode) {
+                    // End of code region
+                    indentOffset = 0;
+                    codeRegionBaseIndent = 0;
+                    result.append(line);
+                } else if (isBlankLine) {
+                    // Blank line in code region - check if code continues after
+                    boolean moreCodeAhead = hasMoreLightlyIndentedCode(lines, i + 1, codeRegionBaseIndent);
+                    if (moreCodeAhead) {
+                        // Keep blank line in code block
+                        result.append("");
+                    } else {
+                        // End of code region
+                        indentOffset = 0;
+                        codeRegionBaseIndent = 0;
+                        result.append(line);
+                    }
+                } else {
+                    // Continue code region - add offset to preserve relative indentation
+                    result.append(" ".repeat(leadingSpaces + indentOffset)).append(trimmed);
+                }
             } else {
+                // Not in a code region
                 result.append(line);
-                previousWasConvertedCode = false;
             }
 
             if (i < lines.length - 1) {
@@ -1573,6 +1707,29 @@ public class MailParser {
         }
 
         return result.toString();
+    }
+
+    /**
+     * Check if there's more lightly-indented code in upcoming lines.
+     */
+    private boolean hasMoreLightlyIndentedCode(String[] lines, int startIndex, int baseIndent) {
+        for (int i = startIndex; i < lines.length && i < startIndex + 3; i++) {
+            String line = lines[i];
+            if (line.trim().isEmpty()) {
+                continue;
+            }
+            int spaces = 0;
+            while (spaces < line.length() && line.charAt(spaces) == ' ') {
+                spaces++;
+            }
+            // If line has indentation >= base and looks like code, there's more
+            if (spaces >= baseIndent && looksLikeCode(line.trim())) {
+                return true;
+            }
+            // If non-blank, non-code, no more code ahead
+            return false;
+        }
+        return false;
     }
 
     // Pattern to match markdown links: [text](url)
@@ -1602,6 +1759,11 @@ public class MailParser {
 
         // Check for code-like parentheses (method calls, generics, tuples)
         if (CODE_PARENS_PATTERN.matcher(lineWithoutLinks).find()) {
+            return true;
+        }
+
+        // Check for variable declarations (int x = ..., var y = ...)
+        if (VARIABLE_DECLARATION_PATTERN.matcher(lineWithoutLinks).find()) {
             return true;
         }
 
@@ -1855,53 +2017,6 @@ public class MailParser {
                 }
                 result.append(" ");
                 result.append(line);
-            } else {
-                result.append(line);
-            }
-
-            if (i < lines.length - 1) {
-                result.append("\n");
-            }
-        }
-
-        return result.toString();
-    }
-
-    // Maximum length for a "short line" that should preserve its line break
-    private static final int SHORT_LINE_MAX_LENGTH = 60;
-
-    /**
-     * Add markdown soft line breaks (two trailing spaces) to short lines ending with punctuation.
-     * <p>
-     * In markdown, consecutive lines are merged into a paragraph. This causes issues for:
-     * - Greetings: "Hello Gavin," followed by the message body
-     * - Signatures: "Wishing you a happy 2026!" followed by "Gavin"
-     * <p>
-     * By adding two trailing spaces, we create a soft break ({@code <br>}) in HTML.
-     */
-    private String addSoftBreaksToShortLines(String content) {
-        String[] lines = content.split("\n", -1);
-        StringBuilder result = new StringBuilder();
-
-        for (int i = 0; i < lines.length; i++) {
-            String line = lines[i];
-            String nextLine = i < lines.length - 1 ? lines[i + 1] : "";
-
-            // Check if this line should have a soft break:
-            // - Short line (under threshold)
-            // - Ends with punctuation (. ! ? ,)
-            // - Next line is not blank (otherwise paragraph break is fine)
-            // - Not inside a code block (doesn't start with 4 spaces)
-            // - Not a blockquote marker line (just ">")
-            String trimmed = line.trim();
-            boolean isShortLine = trimmed.length() > 0 && trimmed.length() <= SHORT_LINE_MAX_LENGTH;
-            boolean endsWithPunctuation = trimmed.matches(".*[.!?,]$");
-            boolean nextLineNotBlank = !nextLine.isBlank();
-            boolean notCodeBlock = !line.startsWith("    ");
-            boolean notBlockquoteOnly = !trimmed.equals(">");
-
-            if (isShortLine && endsWithPunctuation && nextLineNotBlank && notCodeBlock && notBlockquoteOnly) {
-                result.append(line).append("  "); // Add two spaces for soft break
             } else {
                 result.append(line);
             }
