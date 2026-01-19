@@ -19,13 +19,10 @@ Fancy Mail is a Micronaut application that fetches and beautifies emails from Op
 ## Build Commands
 
 ```bash
-# Run in server mode
-./gradlew run --args="--server"
+# Run in server mode (always use --continuous for auto-recompilation)
+./gradlew --continuous run --args="--server"
 
 # Run in dev mode (shows debug info like full Merkle hashes and stack traces)
-./gradlew run --args="--server --dev"
-
-# Run in dev mode with continuous build (auto-recompiles on changes)
 ./gradlew --continuous run --args="--server --dev"
 
 # Run tests
@@ -84,6 +81,10 @@ Tests are in `app/src/test/java/`. Run with:
 ```bash
 ./gradlew test
 ```
+
+### Test Fixtures
+
+Test fixtures are located in `app/src/test/resources/fixtures/`. The `.md` files contain expected markdown output that has been manually curated. **Do not auto-regenerate these files** - they represent the desired output and are used to validate parsing correctness.
 
 ## Deployment
 
