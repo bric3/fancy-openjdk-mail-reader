@@ -14,6 +14,14 @@ A Micronaut application that fetches and beautifies emails from OpenJDK mailing 
 - **In-Memory Caching**: Fetched emails are cached to reduce load on the mailing list server
 - **Code Highlighting**: Syntax highlighting for Java code blocks
 
+## Screenshots
+
+| Home Page | Mail Content |
+|-----------|--------------|
+| ![Home Page](.github/images/home.png) | ![Mail Content](.github/images/mail-content.png) |
+
+*Screenshots show light/dark mode diagonal merge*
+
 ## Requirements
 
 - Java 21+
