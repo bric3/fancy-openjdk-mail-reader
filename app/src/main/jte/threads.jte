@@ -30,6 +30,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicon-light.svg" media="(prefers-color-scheme: light)">
     <link rel="icon" type="image/svg+xml" href="/favicon-dark.svg" media="(prefers-color-scheme: dark)">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/thread-tree.css">
     <style>
         :root {
             color-scheme: light dark;
@@ -188,11 +189,21 @@
             word-wrap: break-word;
         }
         .thread-meta {
-            font-size: 0.85em;
-            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        .thread-author {
+        .thread-header-author {
+            font-size: 0.8em;
+            color: var(--text-secondary);
             font-style: italic;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 150px;
+        }
+        details[open] .thread-header-author {
+            display: none;
         }
         .thread-count {
             font-size: 0.8em;
@@ -202,52 +213,8 @@
             border-radius: 12px;
             white-space: nowrap;
         }
-        .thread-replies {
-            padding: 0 16px 16px 44px;
-            border-top: 1px solid var(--border-color);
-        }
-        .thread-tree {
-            list-style: none;
-            padding: 0;
-            margin: 12px 0 0 0;
-        }
-        .thread-tree ul {
-            list-style: none;
-            padding-left: 20px;
-            margin: 0;
-            border-left: 2px solid var(--border-color);
-        }
-        .thread-entry {
-            margin: 4px 0;
-            padding: 2px 0;
-        }
-        .thread-entry-content {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 4px 8px;
-            margin-left: -8px;
-        }
-        .thread-link {
-            color: var(--text-primary);
-            text-decoration: none;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px 8px;
-            font-size: 0.9em;
-        }
-        .thread-link:hover {
-            color: var(--accent);
-        }
-        .thread-link .thread-subject {
-            font-weight: normal;
-            margin-bottom: 0;
-        }
-        .thread-link .thread-author {
-            color: var(--text-secondary);
-        }
-        .thread-link .thread-author::before {
-            content: "- ";
+        .thread-author {
+            font-style: italic;
         }
         .no-threads {
             text-align: center;
@@ -332,12 +299,6 @@
             }
             .thread-item-header {
                 padding: 12px;
-            }
-            .thread-replies {
-                padding-left: 32px;
-            }
-            .thread-tree ul {
-                padding-left: 12px;
             }
             .stats {
                 flex-direction: column;
@@ -426,17 +387,17 @@
                             <i class="fa-solid fa-message thread-icon"></i>
                             <div class="thread-info">
                                 <div class="thread-subject">${root.subject()}</div>
-                                <div class="thread-meta">
-                                    <span class="thread-author">${root.author()}</span>
-                                </div>
                             </div>
-                            @if(root.totalCount() > 1)
-                            <span class="thread-count">${root.totalCount()} ${msg.totalMessages()}</span>
-                            @endif
+                            <div class="thread-meta">
+                                <span class="thread-header-author">${root.author()}</span>
+                                @if(root.totalCount() > 1)
+                                <span class="thread-count">${root.totalCount()} ${msg.totalMessages()}</span>
+                                @endif
+                            </div>
                         </summary>
-                        <div class="thread-replies">
+                        <div class="thread-content">
                             <ul class="thread-tree">
-                                @template.threadsEntry(entry = root, list = list, yearMonth = yearMonth, parentSubject = root.subject(), paths = paths)
+                                @template.threadEntry(entry = root, list = list, yearMonth = yearMonth, parentSubject = root.subject(), paths = paths)
                             </ul>
                         </div>
                     </details>

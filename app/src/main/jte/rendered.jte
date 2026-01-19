@@ -32,6 +32,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/thread-tree.css">
     <style>
         :root {
             color-scheme: light dark;
@@ -513,68 +514,6 @@
             font-size: 0.85em;
             color: var(--text-secondary);
         }
-        .thread-content {
-            padding: 0 16px 16px 16px;
-            border-top: 1px solid var(--border-color);
-        }
-        .thread-tree {
-            list-style: none;
-            padding: 0;
-            margin: 12px 0 0 0;
-        }
-        .thread-tree ul {
-            list-style: none;
-            padding-left: 20px;
-            margin: 0;
-            border-left: 2px solid var(--border-color);
-        }
-        .thread-entry {
-            margin: 4px 0;
-            padding: 2px 0;
-        }
-        .thread-entry-content {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 4px 8px;
-            margin-left: -8px;
-        }
-        .thread-entry.current > .thread-entry-content {
-            background: var(--accent-light);
-            border-left: 3px solid var(--accent);
-            padding-left: 5px;
-        }
-        .thread-current-marker {
-            color: var(--accent);
-            font-size: 0.85em;
-        }
-        .thread-link {
-            color: var(--text-primary);
-            text-decoration: none;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px 8px;
-            font-size: 0.9em;
-        }
-        .thread-link:hover {
-            color: var(--accent);
-        }
-        .thread-link.current {
-            font-weight: 600;
-        }
-        .thread-subject {
-            color: var(--text-primary);
-        }
-        .thread-author {
-            color: var(--text-secondary);
-            font-style: italic;
-        }
-        .thread-author::before {
-            content: "- ";
-        }
-        .thread-link.current .thread-author::before {
-            content: "";
-        }
         .thread-merkle {
             margin-top: 16px;
             padding-top: 12px;
@@ -593,9 +532,6 @@
             font-size: 0.9em;
         }
         @media (max-width: 768px) {
-            .thread-tree ul {
-                padding-left: 12px;
-            }
             .thread-summary {
                 flex-direction: column;
                 align-items: flex-start;

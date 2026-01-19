@@ -1,0 +1,109 @@
+/*
+ * fancy-mail-openjdk-reader
+ *
+ * Copyright (c) 2026 - Brice Dutheil
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
+/* Shared thread tree styles used by threads.jte and rendered.jte */
+
+.thread-content {
+    padding: 0 16px 16px 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.thread-tree {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0 0 0;
+}
+
+.thread-tree ul {
+    list-style: none;
+    padding-left: 20px;
+    margin: 0;
+    border-left: 2px solid var(--border-color);
+}
+
+.thread-entry {
+    margin: 4px 0;
+    padding: 2px 0;
+}
+
+.thread-entry-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    margin-left: -8px;
+    border-radius: 4px;
+}
+
+.thread-entry-content:hover {
+    background: var(--action-hover);
+}
+
+/* Current entry highlighting (used in rendered mail view) */
+.thread-entry.current > .thread-entry-content,
+.thread-entry.current > .thread-entry-content:hover {
+    background: var(--accent-light);
+    border-left: 3px solid var(--accent);
+    padding-left: 5px;
+}
+
+.thread-current-marker {
+    color: var(--accent);
+    font-size: 0.85em;
+}
+
+.thread-link {
+    color: var(--text-primary);
+    text-decoration: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    font-size: 0.9em;
+}
+
+.thread-link:hover {
+    color: var(--accent);
+}
+
+.thread-link.current {
+    font-weight: 600;
+}
+
+.thread-link .thread-subject,
+.thread-subject {
+    color: var(--text-primary);
+    font-weight: normal;
+    margin-bottom: 0;
+}
+
+.thread-link .thread-author,
+.thread-author {
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.thread-link .thread-author::before,
+.thread-author::before {
+    content: "- ";
+}
+
+.thread-link.current .thread-author::before {
+    content: "";
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .thread-content {
+        padding-left: 12px;
+    }
+    .thread-tree ul {
+        padding-left: 12px;
+    }
+}

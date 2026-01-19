@@ -22,7 +22,7 @@
         </summary>
         <div class="thread-content">
             <ul class="thread-tree">
-                @template.threadEntry(entry = threadContext.threadRoot(), currentId = threadContext.currentEntry().id(), list = threadContext.list(), yearMonth = threadContext.yearMonth(), parentSubject = threadContext.threadRoot().subject(), paths = paths)
+                @template.threadEntry(entry = threadContext.threadRoot(), list = threadContext.list(), yearMonth = threadContext.yearMonth(), currentId = threadContext.currentEntry().id(), parentSubject = threadContext.threadRoot().subject(), paths = paths, useHtmx = true)
             </ul>
             @if(devMode && threadContext.merkleRootHash() != null)
             <div class="thread-merkle">
