@@ -10,12 +10,15 @@
 package dev.brice.fancymail.controller;
 
 import dev.brice.fancymail.config.DevModeConfig;
+import dev.brice.fancymail.config.MailingListsConfig;
 import dev.brice.fancymail.config.Messages.Index;
 import dev.brice.fancymail.config.Messages.Rendered;
+import dev.brice.fancymail.config.Messages.Threads;
 import dev.brice.fancymail.config.PathsConfig;
 import dev.brice.fancymail.model.MailPath;
 import dev.brice.fancymail.model.ParsedMail;
 import dev.brice.fancymail.model.ThreadContext;
+import dev.brice.fancymail.model.ThreadTree;
 import dev.brice.fancymail.service.MailService;
 import dev.brice.fancymail.service.ThreadService;
 import io.micronaut.http.HttpResponse;
@@ -37,7 +40,11 @@ import org.slf4j.LoggerFactory;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URI;
+import java.time.LocalDate;
+import java.time.format.TextStyle;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -53,16 +60,20 @@ public class MailController {
     private final ThreadService threadService;
     private final Index indexMessages;
     private final Rendered renderedMessages;
+    private final Threads threadsMessages;
     private final DevModeConfig devModeConfig;
     private final PathsConfig pathsConfig;
+    private final List<MailingListsConfig> mailingLists;
 
-    public MailController(MailService mailService, ThreadService threadService, Index indexMessages, Rendered renderedMessages, DevModeConfig devModeConfig, PathsConfig pathsConfig) {
+    public MailController(MailService mailService, ThreadService threadService, Index indexMessages, Rendered renderedMessages, Threads threadsMessages, DevModeConfig devModeConfig, PathsConfig pathsConfig, List<MailingListsConfig> mailingLists) {
         this.mailService = mailService;
         this.threadService = threadService;
         this.indexMessages = indexMessages;
         this.renderedMessages = renderedMessages;
+        this.threadsMessages = threadsMessages;
         this.devModeConfig = devModeConfig;
         this.pathsConfig = pathsConfig;
+        this.mailingLists = mailingLists;
     }
 
     /**
@@ -74,8 +85,20 @@ public class MailController {
         return Map.of(
                 "title", "Fancy Mail - OpenJDK Mailing List Beautifier",
                 "msg", indexMessages,
-                "devMode", devModeConfig.enabled()
+                "devMode", devModeConfig.enabled(),
+                "mailingLists", mailingLists,
+                "currentMonth", getCurrentYearMonth(),
+                "paths", pathsConfig
         );
+    }
+
+    /**
+     * Returns the current year-month in OpenJDK format (e.g., "2026-January").
+     */
+    private String getCurrentYearMonth() {
+        LocalDate now = LocalDate.now();
+        String month = now.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
+        return now.getYear() + "-" + month;
     }
 
     /**
@@ -167,5 +190,52 @@ public class MailController {
 
         MailPath mailPath = new MailPath(list, yearMonth, id);
         return mailService.getMailAsMarkdown(mailPath);
+    }
+
+    /**
+     * Show thread list for a mailing list and month.
+     */
+    @Get("/${fancymail.paths.threads:threads}/{list}/{yearMonth}")
+    @View("threads")
+    public Map<String, Object> threads(
+            @PathVariable String list,
+            @PathVariable String yearMonth,
+            @QueryValue(value = "hideBot", defaultValue = "true") boolean hideBot) {
+
+        LOG.info("Showing threads for {}/{} (hideBot={})", list, yearMonth, hideBot);
+
+        try {
+            ThreadTree threadTree = threadService.getThreadTree(list, yearMonth);
+
+            Map<String, Object> model = new HashMap<>();
+            model.put("title", list + " - " + yearMonth);
+            model.put("list", list);
+            model.put("yearMonth", yearMonth);
+            model.put("threadTree", threadTree);
+            model.put("hideBot", hideBot);
+            model.put("msg", threadsMessages);
+            model.put("devMode", devModeConfig.enabled());
+            model.put("paths", pathsConfig);
+            return model;
+        } catch (Exception e) {
+            LOG.error("Error fetching threads for {}/{}", list, yearMonth, e);
+            String errorMessage = "Failed to fetch threads: " + e.getMessage();
+            String stackTrace = null;
+            if (devModeConfig.enabled()) {
+                StringWriter sw = new StringWriter();
+                e.printStackTrace(new PrintWriter(sw));
+                stackTrace = sw.toString();
+            }
+            Map<String, Object> errorModel = new HashMap<>();
+            errorModel.put("title", "Error");
+            errorModel.put("list", list);
+            errorModel.put("yearMonth", yearMonth);
+            errorModel.put("error", errorMessage);
+            errorModel.put("stackTrace", stackTrace);
+            errorModel.put("msg", threadsMessages);
+            errorModel.put("devMode", devModeConfig.enabled());
+            errorModel.put("paths", pathsConfig);
+            return errorModel;
+        }
     }
 }

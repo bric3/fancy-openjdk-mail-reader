@@ -32,6 +32,31 @@ fancymail:
   paths:
     rendered: rendered
     markdown: markdown
+    threads: threads
+  # Mailing lists to display on the home page
+  mailing-lists:
+    amber-dev:
+      description: Project Amber development
+    amber-spec-experts:
+      description: Amber specification experts
+    jdk-dev:
+      description: JDK development
+    core-libs-dev:
+      description: Core libraries development
+    hotspot-dev:
+      description: HotSpot VM development
+    compiler-dev:
+      description: Compiler development
+    loom-dev:
+      description: Project Loom (virtual threads)
+    panama-dev:
+      description: Project Panama (foreign function)
+    valhalla-dev:
+      description: Project Valhalla (value types)
+    security-dev:
+      description: Security development
+    build-dev:
+      description: Build system
 
 # UI Messages - can be overridden to customize text
 messages:
@@ -71,3 +96,10 @@ messages:
     thread-toggle: "messages in thread"
     thread-current: Current message
     thread-merkle-root: "Merkle root:"
+  threads:
+    back: Back to Fancy Mail
+    error-label: "Error:"
+    error-goback: Go back and try again
+    threads-title: Threads
+    total-messages: messages
+    no-threads: No threads found for this month

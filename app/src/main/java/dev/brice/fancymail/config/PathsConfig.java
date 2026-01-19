@@ -20,6 +20,7 @@ public class PathsConfig {
 
     private String rendered = "rendered";
     private String markdown = "markdown";
+    private String threads = "threads";
 
     public String getRendered() {
         return rendered;
@@ -37,6 +38,14 @@ public class PathsConfig {
         this.markdown = markdown;
     }
 
+    public String getThreads() {
+        return threads;
+    }
+
+    public void setThreads(String threads) {
+        this.threads = threads;
+    }
+
     // Template-friendly accessors
     public String rendered() {
         return rendered;
@@ -44,6 +53,10 @@ public class PathsConfig {
 
     public String markdown() {
         return markdown;
+    }
+
+    public String threads() {
+        return threads;
     }
 
     /**
@@ -58,5 +71,12 @@ public class PathsConfig {
      */
     public String toMarkdownPath(String list, String yearMonth, String id) {
         return "/" + markdown + "/" + list + "/" + yearMonth + "/" + id + ".md";
+    }
+
+    /**
+     * Build a threads path for the given list and month.
+     */
+    public String toThreadsPath(String list, String yearMonth) {
+        return "/" + threads + "/" + list + "/" + yearMonth;
     }
 }

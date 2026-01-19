@@ -9,6 +9,9 @@
 --%>
 @param String title
 @param dev.brice.fancymail.config.Messages.Index msg = null
+@param java.util.List<dev.brice.fancymail.config.MailingListsConfig> mailingLists = null
+@param String currentMonth = ""
+@param dev.brice.fancymail.config.PathsConfig paths = null
 
 <!DOCTYPE html>
 <html lang="en">
@@ -163,6 +166,42 @@
             color: var(--text-secondary);
             font-size: 0.9em;
         }
+        .mailing-lists {
+            margin-top: 30px;
+        }
+        .mailing-lists h3 {
+            margin: 0 0 15px 0;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .mailing-lists-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        .mailing-list-item {
+            display: block;
+            padding: 12px 15px;
+            background: var(--card-bg);
+            border-radius: 8px;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .mailing-list-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--accent-shadow);
+        }
+        .mailing-list-name {
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+        .mailing-list-desc {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+        }
         /* Mobile responsiveness */
         @media (max-width: 768px) {
             body {
@@ -249,6 +288,20 @@
                 <p>${msg.featureLinksDesc()}</p>
             </div>
         </div>
+
+        @if(mailingLists != null && !mailingLists.isEmpty())
+        <div class="mailing-lists">
+            <h3>Browse Mailing Lists</h3>
+            <div class="mailing-lists-grid">
+                @for(var mailingList : mailingLists)
+                <a href="${paths != null ? paths.toThreadsPath(mailingList.name(), currentMonth) : "/threads/" + mailingList.name() + "/" + currentMonth}" class="mailing-list-item">
+                    <div class="mailing-list-name">${mailingList.name()}</div>
+                    <div class="mailing-list-desc">${mailingList.description()}</div>
+                </a>
+                @endfor
+            </div>
+        </div>
+        @endif
     </div>
 </body>
 </html>

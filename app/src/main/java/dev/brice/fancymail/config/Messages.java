@@ -168,4 +168,36 @@ public class Messages {
         public String threadCurrent() { return threadCurrent; }
         public String threadMerkleRoot() { return threadMerkleRoot; }
     }
+
+    // Threads page messages
+    @ConfigurationProperties("threads")
+    public static class Threads {
+        private String back = "Back to Fancy Mail";
+        private String errorLabel = "Error:";
+        private String errorGoback = "Go back and try again";
+        private String threadsTitle = "Threads";
+        private String totalMessages = "messages";
+        private String noThreads = "No threads found for this month";
+
+        public String getBack() { return back; }
+        public void setBack(String back) { this.back = back; }
+        public String getErrorLabel() { return errorLabel; }
+        public void setErrorLabel(String errorLabel) { this.errorLabel = errorLabel; }
+        public String getErrorGoback() { return errorGoback; }
+        public void setErrorGoback(String errorGoback) { this.errorGoback = errorGoback; }
+        public String getThreadsTitle() { return threadsTitle; }
+        public void setThreadsTitle(String threadsTitle) { this.threadsTitle = threadsTitle; }
+        public String getTotalMessages() { return totalMessages; }
+        public void setTotalMessages(String totalMessages) { this.totalMessages = totalMessages; }
+        public String getNoThreads() { return noThreads; }
+        public void setNoThreads(String noThreads) { this.noThreads = noThreads; }
+
+        // Template-friendly accessors
+        public String back() { return back; }
+        public String errorLabel() { return errorLabel; }
+        public String errorGoback() { return errorGoback; }
+        public String threadsTitle() { return threadsTitle; }
+        public String totalMessages() { return totalMessages; }
+        public String noThreads() { return noThreads; }
+    }
 }
