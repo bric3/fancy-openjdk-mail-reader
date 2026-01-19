@@ -11,6 +11,7 @@
 @param dev.brice.fancymail.config.Messages.Rendered msg
 @param boolean isOpen = false
 @param boolean devMode = false
+@param dev.brice.fancymail.config.PathsConfig paths = null
 
 @if(threadContext != null && threadContext.threadRoot() != null)
 <div class="thread-section">
@@ -21,7 +22,7 @@
         </summary>
         <div class="thread-content">
             <ul class="thread-tree">
-                @template.threadEntry(entry = threadContext.threadRoot(), currentId = threadContext.currentEntry().id(), list = threadContext.list(), yearMonth = threadContext.yearMonth(), parentSubject = threadContext.threadRoot().subject())
+                @template.threadEntry(entry = threadContext.threadRoot(), currentId = threadContext.currentEntry().id(), list = threadContext.list(), yearMonth = threadContext.yearMonth(), parentSubject = threadContext.threadRoot().subject(), paths = paths)
             </ul>
             @if(devMode && threadContext.merkleRootHash() != null)
             <div class="thread-merkle">

@@ -9,6 +9,7 @@
  */
 package dev.brice.fancymail.service;
 
+import dev.brice.fancymail.config.PathsConfig;
 import jakarta.inject.Singleton;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -25,6 +26,12 @@ import java.util.regex.Pattern;
 public class LinkRewriter {
 
     private static final Logger LOG = LoggerFactory.getLogger(LinkRewriter.class);
+
+    private final PathsConfig pathsConfig;
+
+    public LinkRewriter(PathsConfig pathsConfig) {
+        this.pathsConfig = pathsConfig;
+    }
 
     // Pattern to match OpenJDK mailing list URLs
     private static final Pattern OPENJDK_MAIL_PATTERN = Pattern.compile(
@@ -70,7 +77,7 @@ public class LinkRewriter {
             String list = fullMatcher.group(1);
             String yearMonth = fullMatcher.group(2);
             String id = fullMatcher.group(3);
-            return "/rendered/" + list + "/" + yearMonth + "/" + id + ".html";
+            return pathsConfig.toRenderedPath(list, yearMonth, id);
         }
 
         // Skip navigation links and external links
@@ -108,7 +115,7 @@ public class LinkRewriter {
             String list = fullMatcher.group(1);
             String yearMonth = fullMatcher.group(2);
             String id = fullMatcher.group(3);
-            fullMatcher.appendReplacement(sb, "/rendered/" + list + "/" + yearMonth + "/" + id + ".html");
+            fullMatcher.appendReplacement(sb, Matcher.quoteReplacement(pathsConfig.toRenderedPath(list, yearMonth, id)));
         }
         fullMatcher.appendTail(sb);
 

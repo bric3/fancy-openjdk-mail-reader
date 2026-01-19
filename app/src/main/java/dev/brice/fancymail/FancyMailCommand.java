@@ -100,12 +100,15 @@ public class FancyMailCommand implements Callable<Integer> {
         System.setProperty("micronaut.server.port", String.valueOf(port));
 
         // Determine the URL to open
+        // Note: Uses default path prefix since context isn't loaded yet
         String browserUrl = "http://localhost:" + port;
         if (url != null && !url.isBlank()) {
             try {
                 // Convert the mail URL to the rendered path
                 MailPath mailPath = MailPath.fromUrl(url);
-                browserUrl = "http://localhost:" + port + mailPath.toRenderedPath();
+                @SuppressWarnings("deprecation")
+                String path = mailPath.toRenderedPath();
+                browserUrl = "http://localhost:" + port + path;
                 System.err.println("Will open: " + browserUrl);
             } catch (IllegalArgumentException e) {
                 System.err.println("Warning: Could not parse URL, opening home page instead: " + e.getMessage());

@@ -10,6 +10,7 @@
 package dev.brice.fancymail.service;
 
 import dev.brice.fancymail.cache.MailCache;
+import dev.brice.fancymail.config.PathsConfig;
 import dev.brice.fancymail.model.MailPath;
 import dev.brice.fancymail.model.ParsedMail;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,7 +53,7 @@ class MailServiceTest {
     @BeforeEach
     void setUp() {
         markdownConverter = new MarkdownConverter();
-        LinkRewriter linkRewriter = new LinkRewriter();
+        LinkRewriter linkRewriter = new LinkRewriter(new PathsConfig());
         mailParser = new MailParser(markdownConverter, linkRewriter);
         mailService = new MailService(mailFetcher, mailParser, mailCache, markdownConverter);
     }

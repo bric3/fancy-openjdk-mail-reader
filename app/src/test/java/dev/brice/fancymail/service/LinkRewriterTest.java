@@ -9,6 +9,7 @@
  */
 package dev.brice.fancymail.service;
 
+import dev.brice.fancymail.config.PathsConfig;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -25,7 +26,8 @@ class LinkRewriterTest {
 
     @BeforeEach
     void setUp() {
-        linkRewriter = new LinkRewriter();
+        PathsConfig pathsConfig = new PathsConfig();
+        linkRewriter = new LinkRewriter(pathsConfig);
     }
 
     @Test
@@ -133,5 +135,17 @@ class LinkRewriterTest {
         String rewritten = linkRewriter.rewriteMarkdownLinks(null, "list", "month");
 
         assertThat(rewritten).isNull();
+    }
+
+    @Test
+    void rewriteLink_customPrefix_usesConfiguredPrefix() {
+        PathsConfig customConfig = new PathsConfig();
+        customConfig.setRendered("mail");
+        LinkRewriter customRewriter = new LinkRewriter(customConfig);
+
+        String href = "https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004306.html";
+        String rewritten = customRewriter.rewriteLink(href);
+
+        assertThat(rewritten).isEqualTo("/mail/amber-spec-experts/2026-January/004306.html");
     }
 }

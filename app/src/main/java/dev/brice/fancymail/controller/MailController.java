@@ -12,6 +12,7 @@ package dev.brice.fancymail.controller;
 import dev.brice.fancymail.config.DevModeConfig;
 import dev.brice.fancymail.config.Messages.Index;
 import dev.brice.fancymail.config.Messages.Rendered;
+import dev.brice.fancymail.config.PathsConfig;
 import dev.brice.fancymail.model.MailPath;
 import dev.brice.fancymail.model.ParsedMail;
 import dev.brice.fancymail.model.ThreadContext;
@@ -53,13 +54,15 @@ public class MailController {
     private final Index indexMessages;
     private final Rendered renderedMessages;
     private final DevModeConfig devModeConfig;
+    private final PathsConfig pathsConfig;
 
-    public MailController(MailService mailService, ThreadService threadService, Index indexMessages, Rendered renderedMessages, DevModeConfig devModeConfig) {
+    public MailController(MailService mailService, ThreadService threadService, Index indexMessages, Rendered renderedMessages, DevModeConfig devModeConfig, PathsConfig pathsConfig) {
         this.mailService = mailService;
         this.threadService = threadService;
         this.indexMessages = indexMessages;
         this.renderedMessages = renderedMessages;
         this.devModeConfig = devModeConfig;
+        this.pathsConfig = pathsConfig;
     }
 
     /**
@@ -88,7 +91,7 @@ public class MailController {
 
         try {
             MailPath mailPath = MailPath.fromUrl(url.trim());
-            return HttpResponse.redirect(URI.create(mailPath.toRenderedPath()));
+            return HttpResponse.redirect(URI.create(pathsConfig.toRenderedPath(mailPath.list(), mailPath.yearMonth(), mailPath.id())));
         } catch (IllegalArgumentException e) {
             LOG.warn("Invalid URL submitted: {}", url);
             return HttpResponse.badRequest("Invalid OpenJDK mailing list URL");
@@ -98,7 +101,7 @@ public class MailController {
     /**
      * Render a mail by its path components.
      */
-    @Get("/rendered/{list}/{yearMonth}/{id}.html")
+    @Get("/${fancymail.paths.rendered:rendered}/{list}/{yearMonth}/{id}.html")
     @View("rendered")
     public Map<String, Object> rendered(
             @PathVariable String list,
@@ -130,6 +133,7 @@ public class MailController {
             model.put("threadContext", threadContext);
             model.put("threadOpen", threadOpen);
             model.put("devMode", devModeConfig.enabled());
+            model.put("paths", pathsConfig);
             return model;
         } catch (Exception e) {
             LOG.error("Error rendering mail: {}/{}/{}", list, yearMonth, id, e);
@@ -146,6 +150,7 @@ public class MailController {
             errorModel.put("stackTrace", stackTrace);
             errorModel.put("msg", renderedMessages);
             errorModel.put("devMode", devModeConfig.enabled());
+            errorModel.put("paths", pathsConfig);
             return errorModel;
         }
     }
@@ -153,7 +158,7 @@ public class MailController {
     /**
      * Get raw markdown for a mail.
      */
-    @Get("/markdown/{list}/{yearMonth}/{id}.md")
+    @Get("/${fancymail.paths.markdown:markdown}/{list}/{yearMonth}/{id}.md")
     @Produces("text/plain; charset=utf-8")
     public String markdown(
             @PathVariable String list,

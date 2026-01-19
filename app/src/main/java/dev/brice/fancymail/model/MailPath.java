@@ -56,10 +56,19 @@ public record MailPath(String list, String yearMonth, String id) {
     }
 
     /**
-     * Returns the local rendered path.
+     * Returns the local rendered path with the default prefix.
+     * @deprecated Use {@link dev.brice.fancymail.config.PathsConfig#toRenderedPath(String, String, String)} for configurable paths.
      */
+    @Deprecated
     public String toRenderedPath() {
-        return "/rendered/" + list + "/" + yearMonth + "/" + id + ".html";
+        return toRenderedPath("rendered");
+    }
+
+    /**
+     * Returns the local rendered path with a custom prefix.
+     */
+    public String toRenderedPath(String prefix) {
+        return "/" + prefix + "/" + list + "/" + yearMonth + "/" + id + ".html";
     }
 
     /**

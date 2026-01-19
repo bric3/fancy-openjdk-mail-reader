@@ -45,10 +45,19 @@ public record ThreadEntry(
     }
 
     /**
-     * Returns the local rendered URL for this entry.
+     * Returns the local rendered URL for this entry with the default prefix.
+     * @deprecated Use {@link #toRenderedPath(String, String, String)} for configurable paths.
      */
+    @Deprecated
     public String toRenderedPath(String list, String yearMonth) {
-        return "/rendered/" + list + "/" + yearMonth + "/" + id + ".html";
+        return toRenderedPath(list, yearMonth, "rendered");
+    }
+
+    /**
+     * Returns the local rendered URL for this entry with a custom prefix.
+     */
+    public String toRenderedPath(String list, String yearMonth, String prefix) {
+        return "/" + prefix + "/" + list + "/" + yearMonth + "/" + id + ".html";
     }
 
     /**

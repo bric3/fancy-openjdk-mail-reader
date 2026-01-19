@@ -18,6 +18,7 @@
 @param dev.brice.fancymail.model.ThreadContext threadContext = null
 @param boolean threadOpen = false
 @param boolean devMode = false
+@param dev.brice.fancymail.config.PathsConfig paths = null
 
 <!DOCTYPE html>
 <html lang="en">
@@ -599,7 +600,7 @@
         @else
             <h1>${mail.subject()}</h1>
 
-            @template.threadTree(threadContext = threadContext, msg = msg, isOpen = threadOpen, devMode = devMode)
+            @template.threadTree(threadContext = threadContext, msg = msg, isOpen = threadOpen, devMode = devMode, paths = paths)
 
             <div class="meta">
                 <div class="meta-item">
@@ -707,7 +708,7 @@
                     <em>${msg.footerSource()} <a href="${mail.originalUrl()}" target="_blank">${mail.list()} ${msg.footerMailingList()} <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a></em>
                 </p>
                 <div class="actions">
-                    <a href="/markdown/${list}/${yearMonth}/${id}.md" target="_blank">${msg.footerViewMarkdown()}</a>
+                    <a href="${paths != null ? paths.toMarkdownPath(list, yearMonth, id) : "/markdown/" + list + "/" + yearMonth + "/" + id + ".md"}" target="_blank">${msg.footerViewMarkdown()}</a>
                     <a href="${mail.originalUrl()}" target="_blank">${msg.footerViewOriginal()} <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
                 </div>
             </div>

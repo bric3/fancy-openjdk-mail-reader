@@ -12,10 +12,11 @@
 @param String list
 @param String yearMonth
 @param String parentSubject = ""
+@param dev.brice.fancymail.config.PathsConfig paths = null
 
 !{var isCurrent = entry.id().equals(currentId);}
 !{var displaySubject = entry.subject().equals(parentSubject) ? null : entry.subject();}
-!{var url = entry.toRenderedPath(list, yearMonth) + "?thread=open";}
+!{var url = (paths != null ? paths.toRenderedPath(list, yearMonth, entry.id()) : entry.toRenderedPath(list, yearMonth)) + "?thread=open";}
 
 <li class="thread-entry${isCurrent ? " current" : ""}">
     <div class="thread-entry-content">
@@ -33,7 +34,7 @@
     @if(!entry.replies().isEmpty())
     <ul class="thread-replies">
         @for(var reply : entry.replies())
-        @template.threadEntry(entry = reply, currentId = currentId, list = list, yearMonth = yearMonth, parentSubject = entry.subject())
+        @template.threadEntry(entry = reply, currentId = currentId, list = list, yearMonth = yearMonth, parentSubject = entry.subject(), paths = paths)
         @endfor
     </ul>
     @endif

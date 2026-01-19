@@ -84,12 +84,22 @@ class MailPathTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void toRenderedPath_returnsCorrectPath() {
         MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004307");
 
         String path = mailPath.toRenderedPath();
 
         assertThat(path).isEqualTo("/rendered/amber-spec-experts/2026-January/004307.html");
+    }
+
+    @Test
+    void toRenderedPath_withCustomPrefix_returnsCorrectPath() {
+        MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004307");
+
+        String path = mailPath.toRenderedPath("mail");
+
+        assertThat(path).isEqualTo("/mail/amber-spec-experts/2026-January/004307.html");
     }
 
     @Test

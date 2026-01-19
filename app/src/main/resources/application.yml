@@ -28,6 +28,10 @@ fancymail:
   thread-cache:
     max-size: 100
     expire-after-write: PT6H  # 6 hours (thread structure changes less frequently)
+  # URL path prefixes - can be customized
+  paths:
+    rendered: rendered
+    markdown: markdown
 
 # UI Messages - can be overridden to customize text
 messages:

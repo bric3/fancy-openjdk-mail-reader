@@ -44,12 +44,15 @@ public class Application {
                 }
 
                 // Determine the URL to open
+                // Note: Uses default path prefix since context isn't loaded yet
                 String browserUrl = "http://localhost:" + port;
                 String mailUrl = extractValue(args, "-u", "--url");
                 if (mailUrl != null) {
                     try {
                         MailPath mailPath = MailPath.fromUrl(mailUrl);
-                        browserUrl = "http://localhost:" + port + mailPath.toRenderedPath();
+                        @SuppressWarnings("deprecation")
+                        String path = mailPath.toRenderedPath();
+                        browserUrl = "http://localhost:" + port + path;
                     } catch (IllegalArgumentException e) {
                         System.err.println("Warning: Could not parse URL, opening home page: " + e.getMessage());
                     }
