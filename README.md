@@ -5,7 +5,7 @@
 > While Claude wrote all the code, it was steered toward specific problems and features through human prompts.
 > No IDE was used.
 
-A Micronaut application that fetches and beautifies emails from OpenJDK mailing lists, converting them to clean, readable markdown or rendered HTML.
+A Micronaut application that fetches and beautifies emails from [OpenJDK mailing lists](https://mail.openjdk.org/mailman/listinfo), converting them to clean, readable markdown or rendered HTML.
 
 ## Features
 
