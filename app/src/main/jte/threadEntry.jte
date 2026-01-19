@@ -12,12 +12,12 @@
 @param String yearMonth
 @param String currentId = ""
 @param String parentSubject = ""
-@param dev.brice.fancymail.config.PathsConfig paths = null
+@param dev.brice.fancymail.config.PathsConfig paths
 @param boolean useHtmx = false
 
 !{var isCurrent = currentId != null && !currentId.isEmpty() && entry.id().equals(currentId);}
 !{var displaySubject = entry.subject().equals(parentSubject) ? null : entry.subject();}
-!{var url = (paths != null ? paths.toRenderedPath(list, yearMonth, entry.id()) : "/" + list + "/" + yearMonth + "/" + entry.id() + ".html") + "?thread=open";}
+!{var url = paths.toRenderedPath(list, yearMonth, entry.id()) + "?thread=open";}
 
 <li class="thread-entry${isCurrent ? " current" : ""}">
     <div class="thread-entry-content">

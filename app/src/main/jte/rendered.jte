@@ -32,7 +32,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="/thread-tree.css">
+    <link rel="stylesheet" href="/styles.css">
     <style>
         :root {
             color-scheme: light dark;
@@ -98,46 +98,6 @@
             background: var(--bg-page);
             line-height: 1.6;
             color: var(--text-primary);
-        }
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            margin: -40px -20px 30px -20px;
-            padding: 15px 20px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .header a {
-            color: white;
-            text-decoration: none;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .header a:hover {
-            text-decoration: underline;
-        }
-        .header .home-link {
-            font-size: 1.2em;
-            padding: 6px 10px;
-            border-radius: 6px;
-            transition: background 0.2s;
-        }
-        .header .home-link:hover {
-            background: rgba(255, 255, 255, 0.2);
-            text-decoration: none;
-        }
-        .header .threads-link {
-            padding: 6px 12px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 6px;
-            font-size: 0.9em;
-            transition: background 0.2s;
-        }
-        .header .threads-link:hover {
-            background: rgba(255, 255, 255, 0.3);
-            text-decoration: none;
         }
         .container {
             background: var(--bg-container);
@@ -537,12 +497,7 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <a href="/" class="home-link" title="Home"><i class="fa-solid fa-house"></i></a>
-        <a href="${paths != null ? paths.toThreadsPath(list, yearMonth) : "/threads/" + list + "/" + yearMonth}" class="threads-link">
-            <i class="fa-solid fa-arrow-left"></i> ${list} / ${yearMonth}
-        </a>
-    </div>
+    @template.header(navUrl = paths.toThreadsPath(list, yearMonth), navText = list + " / " + yearMonth)
 
     <div id="mail-container" class="container">
         @if(error != null)
@@ -667,7 +622,7 @@
                     <em>${msg.footerSource()} <a href="${mail.originalUrl()}" target="_blank">${mail.list()} ${msg.footerMailingList()} <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a></em>
                 </p>
                 <div class="actions">
-                    <a href="${paths != null ? paths.toMarkdownPath(list, yearMonth, id) : "/markdown/" + list + "/" + yearMonth + "/" + id + ".md"}" target="_blank">${msg.footerViewMarkdown()}</a>
+                    <a href="${paths.toMarkdownPath(list, yearMonth, id)}" target="_blank">${msg.footerViewMarkdown()}</a>
                     <a href="${mail.originalUrl()}" target="_blank">${msg.footerViewOriginal()} <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i></a>
                 </div>
             </div>

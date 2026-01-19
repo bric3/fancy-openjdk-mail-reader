@@ -30,7 +30,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicon-light.svg" media="(prefers-color-scheme: light)">
     <link rel="icon" type="image/svg+xml" href="/favicon-dark.svg" media="(prefers-color-scheme: dark)">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="/thread-tree.css">
+    <link rel="stylesheet" href="/styles.css">
     <style>
         :root {
             color-scheme: light dark;
@@ -86,22 +86,6 @@
             background: var(--bg-page);
             line-height: 1.6;
             color: var(--text-primary);
-        }
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            margin: -40px -20px 30px -20px;
-            padding: 20px;
-        }
-        .header a {
-            color: white;
-            text-decoration: none;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .header a:hover {
-            text-decoration: underline;
         }
         .container {
             background: var(--bg-container);
@@ -315,9 +299,7 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <a href="/">&#8592; ${msg.back()}</a>
-    </div>
+    @template.header()
 
     <div class="container">
         @if(error != null)
@@ -372,7 +354,7 @@
 
             <ul class="thread-list">
                 @for(var root : filteredRoots)
-                !{var url = paths != null ? paths.toRenderedPath(list, yearMonth, root.id()) : "/" + list + "/" + yearMonth + "/" + root.id() + ".html";}
+                !{var url = paths.toRenderedPath(list, yearMonth, root.id());}
                 <li class="thread-item">
                     <details>
                         <summary class="thread-item-header">

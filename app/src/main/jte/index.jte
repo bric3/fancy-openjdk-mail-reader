@@ -22,6 +22,8 @@
     <title>${title}</title>
     <link rel="icon" type="image/svg+xml" href="/favicon-light.svg" media="(prefers-color-scheme: light)">
     <link rel="icon" type="image/svg+xml" href="/favicon-dark.svg" media="(prefers-color-scheme: dark)">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/styles.css">
     <style>
         :root {
             color-scheme: light dark;
@@ -294,7 +296,7 @@
             <h3>Browse Mailing Lists</h3>
             <div class="mailing-lists-grid">
                 @for(var mailingList : mailingLists)
-                <a href="${paths != null ? paths.toThreadsPath(mailingList.name(), currentMonth) : "/threads/" + mailingList.name() + "/" + currentMonth}" class="mailing-list-item">
+                <a href="${paths.toThreadsPath(mailingList.name(), currentMonth)}" class="mailing-list-item">
                     <div class="mailing-list-name">${mailingList.name()}</div>
                     <div class="mailing-list-desc">${mailingList.description()}</div>
                 </a>
