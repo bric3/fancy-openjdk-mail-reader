@@ -307,6 +307,110 @@ class MailingListLinkRefExtensionTest {
     }
 
     @Nested
+    class DashSeparatorTest {
+
+        @Test
+        void render_withDashSeparator_createsSuperscriptLink() {
+            String markdown = """
+                    See the docs[1].
+
+                    [1] - https://example.com/docs
+                    """;
+
+            String html = render(markdown);
+            System.out.println("=== HTML OUTPUT (dash separator) ===");
+            System.out.println(html);
+            System.out.println("=====================================");
+
+            assertThat(html)
+                    .contains("<sup><a href=\"https://example.com/docs\">[1]</a></sup>")
+                    .contains("<div class=\"link-references\">")
+                    .contains("<li><a href=\"https://example.com/docs\">https://example.com/docs</a></li>");
+        }
+
+        @Test
+        void render_withMultipleDashSeparators() {
+            String markdown = """
+                    JVMLS [1]. Numeric types [2].
+
+                    [1] - https://www.youtube.com/watch?v=Gz7Or9C0TpM
+                    [2] - https://www.youtube.com/watch?v=xCdJb_zI5us
+                    """;
+
+            String html = render(markdown);
+
+            assertThat(html)
+                    .contains("<sup><a href=\"https://www.youtube.com/watch?v=Gz7Or9C0TpM\">[1]</a></sup>")
+                    .contains("<sup><a href=\"https://www.youtube.com/watch?v=xCdJb_zI5us\">[2]</a></sup>")
+                    .contains("<div class=\"link-references\">");
+        }
+
+        @Test
+        void render_withTrailingSourceLine() {
+            // Test that mimics the actual email format with trailing source line
+            String markdown = """
+                    JVMLS [1]. Numeric types [2].
+
+                    [1] - https://www.youtube.com/watch?v=Gz7Or9C0TpM
+                    [2] - https://www.youtube.com/watch?v=xCdJb_zI5us
+
+
+                    ---
+
+                    *Source: [valhalla-dev mailing list](https://mail.openjdk.org/pipermail/valhalla-dev)*
+                    """;
+
+            String html = render(markdown);
+            System.out.println("=== HTML OUTPUT (with trailing source) ===");
+            System.out.println(html);
+            System.out.println("==========================================");
+
+            assertThat(html)
+                    .contains("<sup><a href=\"https://www.youtube.com/watch?v=Gz7Or9C0TpM\">[1]</a></sup>")
+                    .contains("<sup><a href=\"https://www.youtube.com/watch?v=xCdJb_zI5us\">[2]</a></sup>")
+                    .contains("<div class=\"link-references\">");
+        }
+
+        @Test
+        void render_withFullEmailFormat() {
+            // Test with actual full email markdown format
+            String markdown = """
+                    # type classes prototype
+
+                    **From:** Maurizio Cimadamore (maurizio.cimadamore@oracle.com)
+                    **Date:** Tue Jan 13 11:13:00 UTC 2026
+                    **List:** valhalla-dev
+
+                    ---
+
+                    Hi all,
+                    JVMLS [1]. Numeric types [2].
+
+                    Cheers
+                    Maurizio
+
+                    [1] - https://www.youtube.com/watch?v=Gz7Or9C0TpM
+                    [2] - https://www.youtube.com/watch?v=xCdJb_zI5us
+
+
+                    ---
+
+                    *Source: [valhalla-dev mailing list](https://mail.openjdk.org/pipermail/valhalla-dev/2026-January/017402.html)*
+                    """;
+
+            String html = render(markdown);
+            System.out.println("=== HTML OUTPUT (full email format) ===");
+            System.out.println(html);
+            System.out.println("=======================================");
+
+            assertThat(html)
+                    .contains("<sup><a href=\"https://www.youtube.com/watch?v=Gz7Or9C0TpM\">[1]</a></sup>")
+                    .contains("<sup><a href=\"https://www.youtube.com/watch?v=xCdJb_zI5us\">[2]</a></sup>")
+                    .contains("<div class=\"link-references\">");
+        }
+    }
+
+    @Nested
     class IntegrationWithMarkdownConverterTest {
 
         @Test

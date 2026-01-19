@@ -11,6 +11,9 @@ package dev.brice.fancymail.markdown;
 
 import com.vladsch.flexmark.ast.LinkRef;
 import com.vladsch.flexmark.ast.Paragraph;
+import com.vladsch.flexmark.ast.Text;
+import com.vladsch.flexmark.ast.ThematicBreak;
+import com.vladsch.flexmark.util.sequence.BasedSequence;
 import com.vladsch.flexmark.parser.PostProcessor;
 import com.vladsch.flexmark.parser.PostProcessorFactory;
 import com.vladsch.flexmark.util.ast.Document;
@@ -40,10 +43,13 @@ import java.util.regex.Pattern;
  */
 public class MailingListLinkRefPostProcessor implements PostProcessor {
 
-    // Pattern to match reference definitions: [n] URL
+    // Pattern to match reference definitions: [n] URL or [n] - URL or [n]: URL
     private static final Pattern REFERENCE_DEFINITION_PATTERN = Pattern.compile(
-            "^\\[(\\d+)]\\s+(https?://\\S+)\\s*$", Pattern.MULTILINE
+            "^\\[(\\d+)]\\s*[-:]?\\s*(https?://\\S+)\\s*$", Pattern.MULTILINE
     );
+
+    // Pattern to match inline references: [n] in text
+    private static final Pattern INLINE_REFERENCE_PATTERN = Pattern.compile("\\[(\\d+)]");
 
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(MailingListLinkRefPostProcessor.class);
 
@@ -94,25 +100,36 @@ public class MailingListLinkRefPostProcessor implements PostProcessor {
         while (current != null) {
             LOG.debug("Checking node: {} with chars: '{}'", current.getClass().getSimpleName(),
                     current.getChars().toString().replace("\n", "\\n"));
+
+            // Skip thematic breaks (---) - they don't affect reference detection
+            if (current instanceof ThematicBreak) {
+                LOG.debug("Skipping ThematicBreak");
+                current = current.getPrevious();
+                continue;
+            }
+
             if (current instanceof Paragraph paragraph) {
                 String text = paragraph.getChars().toString().trim();
                 LOG.debug("Paragraph text: '{}'", text);
+
+                // Skip metadata-like paragraphs (e.g., "*Source: ...*" at the end)
+                if (text.startsWith("*") && text.endsWith("*")) {
+                    LOG.debug("Skipping metadata paragraph (italic)");
+                    current = current.getPrevious();
+                    continue;
+                }
+
+                // Skip blank paragraphs
+                if (text.isEmpty()) {
+                    current = current.getPrevious();
+                    continue;
+                }
 
                 // Check if the entire paragraph consists only of reference definitions
                 // A paragraph can have multiple definitions on separate lines
                 if (isReferenceDefinitionParagraph(text, references)) {
                     LOG.debug("Paragraph is all reference definitions, marking for removal");
                     nodesToRemove.add(paragraph);
-                    current = current.getPrevious();
-                    continue;
-                }
-            }
-
-            // Stop at first non-reference content
-            // But allow blank paragraphs (though flexmark usually doesn't create them)
-            if (current instanceof Paragraph paragraph) {
-                String text = paragraph.getChars().toString().trim();
-                if (text.isEmpty()) {
                     current = current.getPrevious();
                     continue;
                 }
@@ -167,13 +184,22 @@ public class MailingListLinkRefPostProcessor implements PostProcessor {
     }
 
     private void processInlineReferences(Document document, Map<String, String> references) {
-        // Find all LinkRef nodes (Flexmark parses [n] as LinkRef nodes)
+        // Find all LinkRef nodes (Flexmark parses [n] as LinkRef nodes in some cases)
         List<LinkRef> linkRefNodes = new ArrayList<>();
         collectLinkRefNodes(document, linkRefNodes);
         LOG.debug("Found {} LinkRef nodes to process", linkRefNodes.size());
 
         for (LinkRef linkRef : linkRefNodes) {
             processLinkRefNode(linkRef, references);
+        }
+
+        // Also process Text nodes for [n] patterns that Flexmark doesn't parse as LinkRef
+        List<Text> textNodes = new ArrayList<>();
+        collectTextNodes(document, textNodes);
+        LOG.debug("Found {} Text nodes to process", textNodes.size());
+
+        for (Text textNode : textNodes) {
+            processTextNode(textNode, references);
         }
     }
 
@@ -183,6 +209,15 @@ public class MailingListLinkRefPostProcessor implements PostProcessor {
         }
         for (Node child = node.getFirstChild(); child != null; child = child.getNext()) {
             collectLinkRefNodes(child, linkRefNodes);
+        }
+    }
+
+    private void collectTextNodes(Node node, List<Text> textNodes) {
+        if (node instanceof Text text) {
+            textNodes.add(text);
+        }
+        for (Node child = node.getFirstChild(); child != null; child = child.getNext()) {
+            collectTextNodes(child, textNodes);
         }
     }
 
@@ -206,6 +241,68 @@ public class MailingListLinkRefPostProcessor implements PostProcessor {
         } else {
             LOG.debug("LinkRef [{}] does not match any reference definition", refText);
         }
+    }
+
+    private void processTextNode(Text textNode, Map<String, String> references) {
+        String text = textNode.getChars().toString();
+        Matcher matcher = INLINE_REFERENCE_PATTERN.matcher(text);
+
+        if (!matcher.find()) {
+            return; // No references in this text node
+        }
+
+        // Reset matcher to start from beginning
+        matcher.reset();
+
+        // Build replacement by splitting text around references
+        Node parent = textNode.getParent();
+        if (parent == null) {
+            return;
+        }
+
+        int lastEnd = 0;
+        List<Node> newNodes = new ArrayList<>();
+        BasedSequence baseSeq = textNode.getChars();
+
+        while (matcher.find()) {
+            String refNum = matcher.group(1);
+            if (!references.containsKey(refNum)) {
+                continue; // Skip references without definitions
+            }
+
+            // Add text before this reference
+            if (matcher.start() > lastEnd) {
+                BasedSequence beforeSeq = baseSeq.subSequence(lastEnd, matcher.start());
+                newNodes.add(new Text(beforeSeq));
+            }
+
+            // Add the inline reference
+            String url = references.get(refNum);
+            BasedSequence refSeq = baseSeq.subSequence(matcher.start(), matcher.end());
+            InlineLinkRef inlineLinkRef = new InlineLinkRef(refSeq, refNum);
+            inlineLinkRef.setResolvedUrl(url);
+            newNodes.add(inlineLinkRef);
+
+            lastEnd = matcher.end();
+        }
+
+        if (newNodes.isEmpty()) {
+            return; // No valid references found
+        }
+
+        // Add remaining text after last reference
+        if (lastEnd < text.length()) {
+            BasedSequence afterSeq = baseSeq.subSequence(lastEnd, text.length());
+            newNodes.add(new Text(afterSeq));
+        }
+
+        // Replace the original text node with the new nodes
+        for (Node newNode : newNodes) {
+            textNode.insertBefore(newNode);
+        }
+        textNode.unlink();
+
+        LOG.debug("Replaced text node with {} new nodes", newNodes.size());
     }
 
     private int countChildren(Node node) {
