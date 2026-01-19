@@ -346,6 +346,41 @@
             -webkit-overflow-scrolling: touch;
             margin: 1em 0;
         }
+        /* Link references (footnotes) */
+        .link-references {
+            margin-top: 1.5em;
+            padding: 1em 1.5em;
+            background: var(--card-bg);
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+        .link-references p {
+            margin: 0 0 0.5em 0;
+            color: var(--text-secondary);
+        }
+        .link-references ol {
+            margin: 0;
+            padding-left: 1.5em;
+        }
+        .link-references li {
+            margin: 0.3em 0;
+            word-break: break-all;
+        }
+        .link-references a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+        .link-references a:hover {
+            text-decoration: underline;
+        }
+        .content sup a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .content sup a:hover {
+            text-decoration: underline;
+        }
         /* Mobile responsiveness */
         @media (max-width: 768px) {
             body {

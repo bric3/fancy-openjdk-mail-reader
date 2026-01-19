@@ -89,6 +89,7 @@ public class MailParser {
             // Keep original URLs in markdown for raw markdown output
             bodyMarkdown = extractPreContentAsMarkdown(preElement, mailPath, false);
             // For HTML view, extract with rewritten URLs, then convert to HTML
+            // The MailingListLinkRefExtension handles [n] style references during markdown to HTML conversion
             String bodyMarkdownForHtml = extractPreContentAsMarkdown(preElement, mailPath, true);
             bodyHtml = "<div class=\"email-body\">" + markdownToSimpleHtml(bodyMarkdownForHtml) + "</div>";
         } else {

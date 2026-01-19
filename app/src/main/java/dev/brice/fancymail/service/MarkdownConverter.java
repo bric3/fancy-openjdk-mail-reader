@@ -16,6 +16,7 @@ import com.vladsch.flexmark.html2md.converter.FlexmarkHtmlConverter;
 import com.vladsch.flexmark.parser.Parser;
 import com.vladsch.flexmark.util.ast.Node;
 import com.vladsch.flexmark.util.data.MutableDataSet;
+import dev.brice.fancymail.markdown.MailingListLinkRefExtension;
 
 import java.util.List;
 import jakarta.inject.Singleton;
@@ -40,9 +41,11 @@ public class MarkdownConverter {
         // Enable extensions:
         // - Typographic: smart quotes and dashes (converts " -- " to em-dash, "..." to ellipsis)
         // - Autolink: automatically converts bare URLs to clickable links
+        // - MailingListLinkRef: converts [n] references to superscript links
         options.set(Parser.EXTENSIONS, List.of(
                 TypographicExtension.create(),
-                AutolinkExtension.create()
+                AutolinkExtension.create(),
+                MailingListLinkRefExtension.create()
         ));
 
         this.htmlToMdConverter = FlexmarkHtmlConverter.builder(options).build();
