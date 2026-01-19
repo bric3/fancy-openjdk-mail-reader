@@ -19,9 +19,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -40,15 +37,6 @@ class MailServiceTest {
     private MailParser mailParser;
     private MarkdownConverter markdownConverter;
     private MailService mailService;
-
-    private String loadFixture(String filename) throws IOException {
-        try (InputStream is = getClass().getResourceAsStream("/fixtures/" + filename)) {
-            if (is == null) {
-                throw new IOException("Fixture not found: " + filename);
-            }
-            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
-        }
-    }
 
     @BeforeEach
     void setUp() {
@@ -71,75 +59,6 @@ class MailServiceTest {
 
         assertThat(result.subject()).isEqualTo("Cached Subject");
         verify(mailFetcher, never()).fetch(anyString(), anyString(), anyString());
-    }
-
-    @Test
-    void getMail_cacheMiss_fetchesAndCaches() throws IOException {
-        String html = loadFixture("amber-spec-experts/2026-January/004306.html");
-        MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004306");
-
-        when(mailCache.get(mailPath)).thenReturn(Optional.empty());
-        when(mailFetcher.fetch("amber-spec-experts", "2026-January", "004306")).thenReturn(html);
-
-        ParsedMail result = mailService.getMail(mailPath);
-
-        assertThat(result.subject()).isEqualTo("Amber features 2026");
-        verify(mailCache).put(eq(mailPath), any(ParsedMail.class));
-    }
-
-    @Test
-    void getMail_byUrl_parsesAndFetches() throws IOException {
-        String url = "https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004306.html";
-        String html = loadFixture("amber-spec-experts/2026-January/004306.html");
-
-        when(mailCache.get(any(MailPath.class))).thenReturn(Optional.empty());
-        when(mailFetcher.fetch("amber-spec-experts", "2026-January", "004306")).thenReturn(html);
-
-        ParsedMail result = mailService.getMail(url);
-
-        assertThat(result.subject()).isEqualTo("Amber features 2026");
-    }
-
-    @Test
-    void getMail_byComponents_fetchesCorrectly() throws IOException {
-        String html = loadFixture("amber-spec-experts/2026-January/004307.html");
-
-        when(mailCache.get(any(MailPath.class))).thenReturn(Optional.empty());
-        when(mailFetcher.fetch("amber-spec-experts", "2026-January", "004307")).thenReturn(html);
-
-        ParsedMail result = mailService.getMail("amber-spec-experts", "2026-January", "004307");
-
-        assertThat(result.subject()).isEqualTo("Data Oriented Programming, Beyond Records");
-    }
-
-    @Test
-    void getMailAsMarkdown_byUrl_returnsFormattedMarkdown() throws IOException {
-        String url = "https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004306.html";
-        String html = loadFixture("amber-spec-experts/2026-January/004306.html");
-
-        when(mailCache.get(any(MailPath.class))).thenReturn(Optional.empty());
-        when(mailFetcher.fetch("amber-spec-experts", "2026-January", "004306")).thenReturn(html);
-
-        String markdown = mailService.getMailAsMarkdown(url);
-
-        assertThat(markdown)
-                .contains("# Amber features 2026")
-                .contains("**From:**")
-                .contains("**Date:**")
-                .contains("**List:**");
-    }
-
-    @Test
-    void getMailAsMarkdown_byMailPath_returnsFormattedMarkdown() throws IOException {
-        String html = loadFixture("amber-spec-experts/2026-January/004307.html");
-        MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004307");
-
-        when(mailCache.get(mailPath)).thenReturn(Optional.empty());
-        when(mailFetcher.fetch("amber-spec-experts", "2026-January", "004307")).thenReturn(html);
-
-        String markdown = mailService.getMailAsMarkdown(mailPath);
-
-        assertThat(markdown).contains("# Data Oriented Programming, Beyond Records");
     }
 
     @Test

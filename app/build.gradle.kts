@@ -92,7 +92,25 @@ micronaut {
 }
 
 tasks.named<Test>("test") {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags("fixture-validation")
+    }
+}
+
+// Separate task for fixture validation tests (tests against manually curated expected output)
+tasks.register<Test>("validationTest") {
+    description = "Runs fixture validation tests against manually curated expected output"
+    group = "verification"
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    useJUnitPlatform {
+        includeTags("fixture-validation")
+    }
+}
+
+// Run both test and validationTest with 'check'
+tasks.named("check") {
+    dependsOn("validationTest")
 }
 
 // Fix task dependency for JTE and Micronaut's classpath inspector

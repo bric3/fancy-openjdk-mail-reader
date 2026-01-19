@@ -14,12 +14,6 @@ import dev.brice.fancymail.model.MailPath;
 import dev.brice.fancymail.model.ParsedMail;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -34,131 +28,6 @@ class MailParserTest {
         markdownConverter = new MarkdownConverter();
         linkRewriter = new LinkRewriter(new PathsConfig());
         parser = new MailParser(markdownConverter, linkRewriter);
-    }
-
-    private String loadFixture(String path) throws IOException {
-        try (InputStream is = getClass().getResourceAsStream("/fixtures/" + path)) {
-            if (is == null) {
-                throw new IOException("Fixture not found: " + path);
-            }
-            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
-        }
-    }
-
-    private String loadExpectedMarkdown(String path) throws IOException {
-        // Replace .html with .md for expected markdown files
-        String mdPath = path.replace(".html", ".md");
-        try (InputStream is = getClass().getResourceAsStream("/fixtures/" + mdPath)) {
-            if (is == null) {
-                throw new IOException("Expected markdown not found: " + mdPath);
-            }
-            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
-        }
-    }
-
-    @Test
-    void parse_fixture004306_extractsSubject() throws IOException {
-        String html = loadFixture("amber-spec-experts/2026-January/004306.html");
-        MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004306");
-
-        ParsedMail parsed = parser.parse(html, mailPath);
-
-        assertThat(parsed.subject()).isEqualTo("Amber features 2026");
-    }
-
-    @Test
-    void parse_fixture004306_extractsDate() throws IOException {
-        String html = loadFixture("amber-spec-experts/2026-January/004306.html");
-        MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004306");
-
-        ParsedMail parsed = parser.parse(html, mailPath);
-
-        // Note: JSoup normalizes multiple spaces to single space
-        assertThat(parsed.date()).isEqualTo("Fri Jan 9 23:08:05 UTC 2026");
-    }
-
-    @Test
-    void parse_fixture004306_extractsEmail() throws IOException {
-        String html = loadFixture("amber-spec-experts/2026-January/004306.html");
-        MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004306");
-
-        ParsedMail parsed = parser.parse(html, mailPath);
-
-        assertThat(parsed.email()).isEqualTo("gavin.bierman@oracle.com");
-    }
-
-    @Test
-    void parse_fixture004306_extractsList() throws IOException {
-        String html = loadFixture("amber-spec-experts/2026-January/004306.html");
-        MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004306");
-
-        ParsedMail parsed = parser.parse(html, mailPath);
-
-        assertThat(parsed.list()).isEqualTo("amber-spec-experts");
-    }
-
-    @Test
-    void parse_fixture004306_extractsOriginalUrl() throws IOException {
-        String html = loadFixture("amber-spec-experts/2026-January/004306.html");
-        MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004306");
-
-        ParsedMail parsed = parser.parse(html, mailPath);
-
-        assertThat(parsed.originalUrl())
-                .isEqualTo("https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004306.html");
-    }
-
-    @Test
-    void parse_fixture004306_bodyContainsContent() throws IOException {
-        String html = loadFixture("amber-spec-experts/2026-January/004306.html");
-        MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004306");
-
-        ParsedMail parsed = parser.parse(html, mailPath);
-
-        assertThat(parsed.bodyMarkdown() + parsed.bodyHtml())
-                .containsIgnoringCase("spec experts");
-    }
-
-    @Test
-    void parse_fixture004307_extractsSubject() throws IOException {
-        String html = loadFixture("amber-spec-experts/2026-January/004307.html");
-        MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004307");
-
-        ParsedMail parsed = parser.parse(html, mailPath);
-
-        assertThat(parsed.subject()).isEqualTo("Data Oriented Programming, Beyond Records");
-    }
-
-    @Test
-    void parse_fixture004307_extractsDate() throws IOException {
-        String html = loadFixture("amber-spec-experts/2026-January/004307.html");
-        MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004307");
-
-        ParsedMail parsed = parser.parse(html, mailPath);
-
-        assertThat(parsed.date()).isEqualTo("Tue Jan 13 21:52:47 UTC 2026");
-    }
-
-    @Test
-    void parse_fixture004307_extractsEmail() throws IOException {
-        String html = loadFixture("amber-spec-experts/2026-January/004307.html");
-        MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004307");
-
-        ParsedMail parsed = parser.parse(html, mailPath);
-
-        assertThat(parsed.email()).isEqualTo("brian.goetz@oracle.com");
-    }
-
-    @Test
-    void parse_fixture004307_bodyContainsCarrierClasses() throws IOException {
-        String html = loadFixture("amber-spec-experts/2026-January/004307.html");
-        MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004307");
-
-        ParsedMail parsed = parser.parse(html, mailPath);
-
-        // The body should contain discussion about carrier classes
-        assertThat(parsed.bodyMarkdown().toLowerCase() + parsed.bodyHtml().toLowerCase())
-                .contains("carrier");
     }
 
     @Test
@@ -815,32 +684,6 @@ class MailParserTest {
     }
 
     @Test
-    void parse_fixture004317_codeInsideListItems() throws IOException {
-        // Real fixture from https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004317.html
-        String html = loadFixture("amber-spec-experts/2026-January/004317.html");
-        MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004317");
-
-        ParsedMail parsed = parser.parse(html, mailPath);
-
-        // List items with code examples should be properly formatted
-        assertThat(parsed.bodyMarkdown())
-                .contains("- you mutate variables when you reduce accumulators in a loop")
-                .contains("- you mutate variables after a condition")
-                .contains("- you mutate variables when you transfer values in between scopes");
-
-        // Code inside list items should be in fenced blocks
-        assertThat(parsed.bodyMarkdown()).contains("```");
-        assertThat(parsed.bodyMarkdown()).contains("var v1 = ...");
-        assertThat(parsed.bodyMarkdown()).contains("for(...) {");
-        assertThat(parsed.bodyMarkdown()).contains("if (...) {");
-        assertThat(parsed.bodyMarkdown()).contains("try(...) {");
-
-        // HTML should also render correctly with code blocks
-        assertThat(parsed.bodyHtml()).contains("<ul>");
-        assertThat(parsed.bodyHtml()).contains("<li>");
-    }
-
-    @Test
     void parse_proseEndingWithSemicolon_notTreatedAsCode() {
         // Prose that ends with semicolons should NOT be treated as code
         // This tests the fix for lines like "components are subsumed by the subclass state description;"
@@ -953,75 +796,6 @@ class MailParserTest {
     }
 
     @Test
-    void parse_fixture004323_columnZeroCodeDetectedAsFenced() throws IOException {
-        // Real fixture from https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004323.html
-        // Tests that code at column 0 (no indentation) is detected and fenced
-        String html = loadFixture("amber-spec-experts/2026-January/004323.html");
-        MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004323");
-
-        ParsedMail parsed = parser.parse(html, mailPath);
-
-        // The interface/record code at column 0 should be detected as code
-        // because it contains code syntax patterns like { }, (), implements, etc.
-        assertThat(parsed.bodyMarkdown())
-                .contains("interface Pair")
-                .contains("record Impl");
-
-        // The code should be wrapped in fenced code blocks
-        assertThat(parsed.bodyMarkdown()).contains("```");
-
-        // HTML output should have proper code formatting
-        assertThat(parsed.bodyHtml()).contains("<pre><code>");
-        assertThat(parsed.bodyHtml()).contains("interface Pair");
-    }
-
-    @Test
-    void parse_fixture004324_quotedEmailHeadersNotTreatedAsCode() throws IOException {
-        // Real fixture from https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004324.html
-        // Tests that quoted email headers (*From: *, *To: *, etc.) are NOT treated as code
-        String html = loadFixture("amber-spec-experts/2026-January/004324.html");
-        MailPath mailPath = new MailPath("amber-spec-experts", "2026-January", "004324");
-
-        ParsedMail parsed = parser.parse(html, mailPath);
-
-        // Email headers like "*From: *" should NOT be in code blocks
-        // They should be rendered as regular blockquoted text with bold formatting
-        assertThat(parsed.bodyMarkdown())
-                .contains("*From: *")
-                .contains("*To: *")
-                .contains("*Subject: *");
-
-        // The email header block should NOT be wrapped in fenced code blocks
-        // Verify *From: * is NOT immediately after an opening ``` without a closing ```
-        String markdown = parsed.bodyMarkdown();
-        int fromIndex = markdown.indexOf("*From: *");
-        assertThat(fromIndex).isGreaterThan(-1);
-
-        // Check that the *From: * is not inside an unclosed code fence
-        String beforeFrom = markdown.substring(0, fromIndex);
-        // Count opening and closing fences before *From: *
-        int fenceCount = countOccurrences(beforeFrom, "```");
-        // If even number of fences, we're outside code blocks (good)
-        // If odd number, we're inside a code block (bad)
-        assertThat(fenceCount % 2)
-                .as("Email header *From: * should not be inside an unclosed code fence")
-                .isEqualTo(0);
-
-        // The actual email content should still be properly parsed
-        assertThat(parsed.bodyMarkdown()).contains("deconstructor is not a method at all");
-    }
-
-    private int countOccurrences(String str, String sub) {
-        int count = 0;
-        int idx = 0;
-        while ((idx = str.indexOf(sub, idx)) != -1) {
-            count++;
-            idx += sub.length();
-        }
-        return count;
-    }
-
-    @Test
     void parse_columnZeroCode_multiLineDetection() {
         // Tests that multiple consecutive lines at column 0 that look like code
         // are wrapped in a single fenced code block
@@ -1100,27 +874,6 @@ class MailParserTest {
 
         // The note text should also be in the blockquote
         assertThat(markdown).contains("Just a quick note");
-    }
-
-    @ParameterizedTest(name = "fixture {0} markdown matches expected")
-    @ValueSource(strings = {
-            "amber-spec-experts/2026-January/004306",
-            "amber-spec-experts/2026-January/004307",
-            "amber-spec-experts/2026-January/004308",
-            "amber-spec-experts/2026-January/004316",
-            "amber-spec-experts/2026-January/004317",
-            "amber-spec-experts/2026-January/004323",
-            "amber-spec-experts/2026-January/004324"
-    })
-    void parse_fixture_markdownMatchesExpected(String fixture) throws IOException {
-        String html = loadFixture(fixture + ".html");
-        String expectedMarkdown = loadExpectedMarkdown(fixture + ".html");
-        String[] parts = fixture.split("/");
-        MailPath mailPath = new MailPath(parts[0], parts[1], parts[2]);
-
-        ParsedMail parsed = parser.parse(html, mailPath);
-
-        assertThat(parsed.bodyMarkdown()).isEqualTo(expectedMarkdown);
     }
 
     @Test
