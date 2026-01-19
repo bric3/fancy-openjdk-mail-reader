@@ -1272,7 +1272,8 @@ public class MailParser {
                 }
             } else if (trimmedContent.isEmpty() && consecutiveCodeLines > 0) {
                 // Blank line (or blank blockquote line) within potential code block
-                if (hasMoreColumnZeroCodeWithPrefix(lines, i + 1, currentBlockquotePrefix)) {
+                // Check for more code (including indented) to continue the block
+                if (hasMoreCodeWithPrefix(lines, i + 1, currentBlockquotePrefix, true)) {
                     codeBlock.append(line).append("\n");
                 } else {
                     // End of code block
@@ -1334,6 +1335,10 @@ public class MailParser {
      * Check if there's more column-0 code-like content in upcoming lines with the same prefix.
      */
     private boolean hasMoreColumnZeroCodeWithPrefix(String[] lines, int startIndex, String expectedPrefix) {
+        return hasMoreCodeWithPrefix(lines, startIndex, expectedPrefix, false);
+    }
+
+    private boolean hasMoreCodeWithPrefix(String[] lines, int startIndex, String expectedPrefix, boolean includeIndented) {
         String normalizedExpected = expectedPrefix != null ? expectedPrefix.replace(" ", "") : "";
 
         for (int i = startIndex; i < lines.length; i++) {
@@ -1364,11 +1369,20 @@ public class MailParser {
                 return false;
             }
 
-            // Check if prefix matches and content looks like code
+            // Check if prefix matches
             String normalizedPrefix = prefix.replace(" ", "");
-            if (normalizedPrefix.equals(normalizedExpected) &&
-                    !contentAfterPrefix.startsWith("    ") &&
-                    !contentAfterPrefix.startsWith("\t") &&
+            if (!normalizedPrefix.equals(normalizedExpected)) {
+                return false;
+            }
+
+            // Check for indented code (if allowed)
+            boolean isIndented = contentAfterPrefix.startsWith("    ") || contentAfterPrefix.startsWith("\t");
+            if (isIndented && includeIndented && looksLikeCode(trimmedContent)) {
+                return true;
+            }
+
+            // Check for column-zero code
+            if (!isIndented &&
                     !trimmedContent.matches("^([-*]|\\d+\\.)\\s.*") &&
                     looksLikeCode(trimmedContent)) {
                 return true;
@@ -1602,6 +1616,11 @@ public class MailParser {
             "\\w+(?:<[^>]+>)?)\\s+\\w+\\s*="    // type identifier = (with optional generics)
     );
 
+    // Pattern for simple assignments: a = x; b = y; (identifier = expression;)
+    private static final Pattern SIMPLE_ASSIGNMENT_PATTERN = Pattern.compile(
+            "^\\w+\\s*=\\s*\\w+\\s*;\\s*$"     // identifier = identifier;
+    );
+
     // Pattern for Java keywords - these alone are NOT enough to identify code
     // because prose about Java naturally uses words like "record", "class", "case"
     private static final Pattern CODE_KEYWORD_PATTERN = Pattern.compile(
@@ -1764,6 +1783,11 @@ public class MailParser {
 
         // Check for variable declarations (int x = ..., var y = ...)
         if (VARIABLE_DECLARATION_PATTERN.matcher(lineWithoutLinks).find()) {
+            return true;
+        }
+
+        // Check for simple assignments (a = x;)
+        if (SIMPLE_ASSIGNMENT_PATTERN.matcher(lineWithoutLinks).find()) {
             return true;
         }
 
