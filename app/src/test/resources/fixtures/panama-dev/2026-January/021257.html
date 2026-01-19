@@ -1,0 +1,152 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Variability of the performance of Vector&lt;E&gt;
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:panama-dev%40openjdk.org?Subject=Re%3A%20Variability%20of%20the%20performance%20of%20Vector%3CE%3E&In-Reply-To=%3CD70F759F-D2B3-49CC-B69A-BC5C8B2CDCF2%40oracle.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="021256.html">
+   <LINK REL="Next"  HREF="021258.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Variability of the performance of Vector&lt;E&gt;</H1>
+    <B>John Rose</B> 
+    <A HREF="mailto:panama-dev%40openjdk.org?Subject=Re%3A%20Variability%20of%20the%20performance%20of%20Vector%3CE%3E&In-Reply-To=%3CD70F759F-D2B3-49CC-B69A-BC5C8B2CDCF2%40oracle.com%3E"
+       TITLE="Variability of the performance of Vector&lt;E&gt;">john.r.rose at oracle.com
+       </A><BR>
+    <I>Wed Jan  7 23:03:00 UTC 2026</I>
+    <P><UL>
+        <LI>Previous message (by thread): <A HREF="021256.html">[vectorIntrinsics+fp16] Withdrawn: 8365967: C2 compiler support for HalffloatVector operations supported by auto-vectorization flow
+</A></li>
+        <LI>Next message (by thread): <A HREF="021258.html">Variability of the performance of Vector&lt;E&gt;
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#21257">[ date ]</a>
+              <a href="thread.html#21257">[ thread ]</a>
+              <a href="subject.html#21257">[ subject ]</a>
+              <a href="author.html#21257">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 5 Jan 2026, Peter Kessler OS wrote:
+
+&gt;<i> I am worried about the variability of the performance of Vector&lt;E&gt;.  Worse, I am worried about how to explain to users the variability of the performance of Vector&lt;E&gt;.
+</I>&#8230;
+&gt;<i> Aligning arrays to avoid occasional 25% performance loss seems like a worthwhile goal.  I would like to open a discussion about how that end might be achieved.
+</I>
+full message: <A HREF="https://mail.openjdk.org/pipermail/hotspot-gc-dev/2026-January/056951.html">https://mail.openjdk.org/pipermail/hotspot-gc-dev/2026-January/056951.html</A>
+
+Much of this is a question for panama-dev, where we are very aware
+of the difficulties of building a user model for vector programming.
+I appreciate the similar thread from your here on panama-dev:
+<A HREF="https://mail.openjdk.org/pipermail/panama-dev/2025-September/021141.html">https://mail.openjdk.org/pipermail/panama-dev/2025-September/021141.html</A>
+
+But the final question is very important for the GC folks, and is indeed
+worth a discussion.  Actually we have been discussing it one way or another
+for years, at a low level of urgency.  Maybe there are enough concurrent
+factors to justify taking the plunge (in 2026?) towards hyper-aligned
+Java heap objects, at least large arrays.
+
+Predictable vector performance requires aligned arrays, aligned either
+to cache lines or to some hardware vector size.
+
+For Valhalla, if we decide to work with 128-bit value containers,
+we would need not only arrays but also class instances that are
+aligned to 128 bits.  (Why 128-bit containers?  Well, they are
+efficiently atomic on ARM and maybe x86, and many Valhalla types
+would use them if they could.  But misaligning them spoils
+atomicity.  Valhalla is limited to 64-bit flattening as long as
+the existing heap alignment schemes are present.)
+
+Aligning an array is not exactly the same task as aligning an object,
+since for arrays you should align the address &amp;a[0], while for an
+object o you must align some field &amp;o.f, but you can get away with
+aligning &amp;o._header (and put padding after the object header).
+
+In this space, there are lots of ways to pick out a set of
+requirements and techniques.
+
+Fundamentally, though, the GC needs to recognize that some array or
+(maybe) object is subject to hyper-alignment, and perform special-case
+allocation on it.  There&#8217;s lots of bookkeeping around that fundamental,
+including sizing logic (might we need more space for inter-object padding?)
+and of course the initial contracts.  (I.e., how does the user request
+hyper-alignment?)
+
+And there is the delicate question of optimization:  How do we keep
+hot loops in the GC from acquiring an extra data-dependent test (for
+the &quot;hyper-align bit&quot;).  Can we hide the test under another pre-existing
+test?  Can be batch things so that normally aligned objects are segregated
+from the hyper-aligned ones, and version our hot loops accordingly?
+
+(&quot;Another pre-existing test&quot; &#8212; I&#8217;m thinking something like an object
+header test that already exists, where some rare object header bit
+configuration must already be tested for, and is expected to be
+rare.  In that case, all hyper-aligned objects, whether arrays or
+not, would be put into that rare header state, and on the rarely
+taken path in the GC loop that handles the pre-existing rare state,
+we&#8217;d also handle the case of hyper-alignment.  Seems likely that
+would be an option&#8230;)
+
+On top of all that is portability &#8212; we have to do this work several
+times, once for each GC.  Or, if a particular GC configuration cannot
+support hyper-alignment, the user model must offer a fallback.
+
+(The fallback might look like, &quot;If you use the vector API you should
+really enable Z or G1&quot;.  And also, &quot;You get better flattening for
+larger value objects if you run on ARM with Z or G1.&quot;)
+
+I haven&#8217;t even begun to assign header bits here.  The problems are
+deeper than that!
+
+I will say one more thing about arrays:  I think it would be very
+reasonable to align all arrays larger than a certain threshold size,
+fully to the platform cache line size, so that the &amp;a[0] starts at
+a cache line boundary.  This goes for primitives, values, whatever.
+
+Call this particular feature &quot;large array hyper alignment&quot;.
+
+It might be a first feature to implement in this space.
+
+I have filed an RFE here: <A HREF="https://bugs.openjdk.org/browse/JDK-8374748">https://bugs.openjdk.org/browse/JDK-8374748</A>
+
+Note that many hot GC loops that process arrays are O(a.length).
+This means that doing a little extra work for long lengths is
+almost by definition a negligible overhead.
+
+Large array hyper alignment would neatly solve Peter&#8217;s problem.
+
+And it would give us a head start towards Valhalla atomics,
+as long as we didn&#8217;t paint ourselves into some corner.
+The RFE mentions some possible follow-on features.
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message (by thread): <A HREF="021256.html">[vectorIntrinsics+fp16] Withdrawn: 8365967: C2 compiler support for HalffloatVector operations supported by auto-vectorization flow
+</A></li>
+	<LI>Next message (by thread): <A HREF="021258.html">Variability of the performance of Vector&lt;E&gt;
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#21257">[ date ]</a>
+              <a href="thread.html#21257">[ thread ]</a>
+              <a href="subject.html#21257">[ subject ]</a>
+              <a href="author.html#21257">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://mail.openjdk.org/mailman/listinfo/panama-dev">More information about the panama-dev
+mailing list</a><br>
+<script type="text/javascript"  src="/JMa-FLkZ/JNK/FZL/oood-_PAYZ/JitYcmDt9kSNkGfO/CAoOAg/TgZ8HXE/hN2oB"></script></body></html>

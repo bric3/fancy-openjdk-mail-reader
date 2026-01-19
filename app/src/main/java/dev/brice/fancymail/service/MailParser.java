@@ -1629,15 +1629,17 @@ public class MailParser {
     // parentheses to look like code (no spaces right after opening paren, or
     // contains code-like content like commas between identifiers)
     // Note: `--` requires context (not standalone) to avoid matching signature separators
+    // Note: `//` uses negative lookbehind to exclude URLs (http:// https://)
     private static final Pattern CODE_SYNTAX_PATTERN = Pattern.compile(
-            "->|=>|==|!=|<=|>=|&&|\\|\\||\\{|\\}|//|/\\*|\\*/|\\+\\+|\\w--(?!$)|(?<!^)--\\w"
+            "->|=>|==|!=|<=|>=|&&|\\|\\||\\{|\\}|(?<!:)//|/\\*|\\*/|\\+\\+|\\w--(?!$)|(?<!^)--\\w"
     );
 
     // Pattern for code-like parentheses: method calls, type parameters, etc.
     // Matches: foo(), foo(x), foo(x, y), but NOT prose with parentheses like "itself (not the case)"
     // Key: NO space allowed between identifier and opening paren for method calls
+    // Note: Excludes Big-O notation like O(n), O(n^2), O(a.length) which is common in algorithm discussions
     private static final Pattern CODE_PARENS_PATTERN = Pattern.compile(
-            "\\w+\\([^)]*\\)|" +                // method call: foo() or foo(args) - NO space before (
+            "(?![Oo]\\()[a-zA-Z_]\\w*\\([^)]*\\)|" +  // method call but NOT O() or o() - Big-O notation
             "\\([^)]*,\\s*[^)]*\\)|" +          // tuple/params: (a, b)
             "<[^>]+>\\s*\\(|" +                 // generics before paren: <T>(
             "\\)\\s*\\{|" +                     // ) followed by { : method signature

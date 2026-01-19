@@ -245,7 +245,8 @@ class MailParserFixtureValidationTest {
             "amber-spec-experts/2026-January/004316",
             "amber-spec-experts/2026-January/004317",
             "amber-spec-experts/2026-January/004323",
-            "amber-spec-experts/2026-January/004324"
+            "amber-spec-experts/2026-January/004324",
+            "panama-dev/2026-January/021257"
     })
     void parse_fixture_markdownMatchesExpected(String fixture) throws IOException {
         String html = loadFixture(fixture + ".html");

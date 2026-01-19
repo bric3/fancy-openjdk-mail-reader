@@ -9,6 +9,7 @@
  */
 package dev.brice.fancymail.service;
 
+import com.vladsch.flexmark.ext.autolink.AutolinkExtension;
 import com.vladsch.flexmark.ext.typographic.TypographicExtension;
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.html2md.converter.FlexmarkHtmlConverter;
@@ -36,9 +37,13 @@ public class MarkdownConverter {
 
     public MarkdownConverter() {
         MutableDataSet options = new MutableDataSet();
-        // Enable typographic extension for smart quotes and dashes
-        // Converts " -- " to em-dash (—), "..." to ellipsis (…)
-        options.set(Parser.EXTENSIONS, List.of(TypographicExtension.create()));
+        // Enable extensions:
+        // - Typographic: smart quotes and dashes (converts " -- " to em-dash, "..." to ellipsis)
+        // - Autolink: automatically converts bare URLs to clickable links
+        options.set(Parser.EXTENSIONS, List.of(
+                TypographicExtension.create(),
+                AutolinkExtension.create()
+        ));
 
         this.htmlToMdConverter = FlexmarkHtmlConverter.builder(options).build();
         this.mdParser = Parser.builder(options).build();
