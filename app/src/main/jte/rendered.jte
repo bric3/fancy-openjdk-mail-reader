@@ -101,7 +101,10 @@
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             margin: -40px -20px 30px -20px;
-            padding: 20px;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
         .header a {
             color: white;
@@ -113,6 +116,27 @@
         }
         .header a:hover {
             text-decoration: underline;
+        }
+        .header .home-link {
+            font-size: 1.2em;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .header .home-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+            text-decoration: none;
+        }
+        .header .threads-link {
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            font-size: 0.9em;
+            transition: background 0.2s;
+        }
+        .header .threads-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+            text-decoration: none;
         }
         .container {
             background: var(--bg-container);
@@ -582,7 +606,10 @@
 </head>
 <body>
     <div class="header">
-        <a href="/">&#8592; ${msg.back()}</a>
+        <a href="/" class="home-link" title="Home"><i class="fa-solid fa-house"></i></a>
+        <a href="${paths != null ? paths.toThreadsPath(list, yearMonth) : "/threads/" + list + "/" + yearMonth}" class="threads-link">
+            <i class="fa-solid fa-arrow-left"></i> ${list} / ${yearMonth}
+        </a>
     </div>
 
     <div id="mail-container" class="container">
