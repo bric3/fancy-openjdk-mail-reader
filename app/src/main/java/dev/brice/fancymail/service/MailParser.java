@@ -1242,11 +1242,24 @@ public class MailParser {
                 continue;
             }
 
-            // Handle indented lines and list items
-            boolean isIndentedOrList = contentAfterPrefix.startsWith("    ") || contentAfterPrefix.startsWith("\t") ||
-                    contentAfterPrefix.trim().matches("^([-*]|\\d+\\.)\\s.*");
+            // Handle indented lines (but NOT list items - they should remain as markdown lists)
+            boolean isListItem = contentAfterPrefix.trim().matches("^([-*]|\\d+\\.)\\s.*");
+            boolean isIndented = contentAfterPrefix.startsWith("    ") || contentAfterPrefix.startsWith("\t");
 
-            if (isIndentedOrList) {
+            // List items should never be treated as code - skip them entirely
+            if (isListItem) {
+                flushCodeBlock(result, codeBlock, consecutiveCodeLines, currentBlockquotePrefix);
+                codeBlock.setLength(0);
+                consecutiveCodeLines = 0;
+                currentBlockquotePrefix = null;
+                result.append(line);
+                if (i < lines.length - 1) {
+                    result.append("\n");
+                }
+                continue;
+            }
+
+            if (isIndented) {
                 String trimmedContent = contentAfterPrefix.trim();
                 String normalizedPrefix = prefix.replace(" ", "");
                 String currentNormalized = currentBlockquotePrefix != null ?
@@ -1284,8 +1297,10 @@ public class MailParser {
             }
 
             // Check if content looks like code (at column 0 or right after blockquote prefix)
+            // But never treat list items as code, even if their content matches code patterns
             String trimmedContent = contentAfterPrefix.trim();
-            if (!trimmedContent.isEmpty() && looksLikeCode(trimmedContent)) {
+            boolean isColumnZeroListItem = trimmedContent.matches("^([-*]|\\d+\\.)\\s.*");
+            if (!trimmedContent.isEmpty() && !isColumnZeroListItem && looksLikeCode(trimmedContent)) {
                 // Check if we're continuing in the same blockquote context
                 String normalizedPrefix = prefix.replace(" ", "");
                 String currentNormalized = currentBlockquotePrefix != null ?
@@ -2065,7 +2080,9 @@ public class MailParser {
                 }
 
                 // Check for list item continuation
-                if (!isOrphanLine && LIST_ITEM_PATTERN.matcher(prevLine).find()) {
+                // But don't treat the line as orphan if it's itself a list item
+                if (!isOrphanLine && LIST_ITEM_PATTERN.matcher(prevLine).find() &&
+                        !LIST_ITEM_PATTERN.matcher(line).find()) {
                     // Next line should resume with indentation or be blank
                     boolean nextLineResumes = nextLine.isBlank() ||
                             nextLine.startsWith(" ") ||
