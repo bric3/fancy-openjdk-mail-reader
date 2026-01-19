@@ -38,6 +38,11 @@ public class MailParser {
     // Pattern to extract email from "name at domain" format
     private static final Pattern EMAIL_PATTERN = Pattern.compile("([\\w.-]+)\\s+at\\s+([\\w.-]+)");
 
+    // Pattern to match OpenJDK mailing list URLs
+    private static final Pattern OPENJDK_MAIL_URL_PATTERN = Pattern.compile(
+            "https?://mail\\.openjdk\\.org/pipermail/([^/]+)/([^/]+)/(\\d+)\\.html"
+    );
+
     // Pattern to match date format like "Tue Jan 13 21:52:47 UTC 2026"
     private static final Pattern DATE_PATTERN = Pattern.compile(
             "(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\\s+" +
@@ -81,9 +86,11 @@ public class MailParser {
 
         if (preElement != null) {
             // PRE content is already markdown-like - extract and clean it
-            bodyMarkdown = extractPreContentAsMarkdown(preElement, mailPath);
-            // For HTML view, wrap cleaned markdown in a pre-like div
-            bodyHtml = "<div class=\"email-body\">" + markdownToSimpleHtml(bodyMarkdown) + "</div>";
+            // Keep original URLs in markdown for raw markdown output
+            bodyMarkdown = extractPreContentAsMarkdown(preElement, mailPath, false);
+            // For HTML view, extract with rewritten URLs, then convert to HTML
+            String bodyMarkdownForHtml = extractPreContentAsMarkdown(preElement, mailPath, true);
+            bodyHtml = "<div class=\"email-body\">" + markdownToSimpleHtml(bodyMarkdownForHtml) + "</div>";
         } else {
             // Fallback for non-standard format
             Element body = extractBodyElement(doc);
@@ -395,8 +402,12 @@ public class MailParser {
     /**
      * Extract PRE content as markdown, cleaning up HTML entities and links.
      * Pipermail PRE content is already markdown-formatted text.
+     *
+     * @param preElement the PRE element to extract content from
+     * @param mailPath the mail path for context
+     * @param rewriteLinks if true, rewrite OpenJDK mail links to local paths; if false, keep original URLs
      */
-    private String extractPreContentAsMarkdown(Element preElement, MailPath mailPath) {
+    private String extractPreContentAsMarkdown(Element preElement, MailPath mailPath, boolean rewriteLinks) {
         // Get the inner HTML to preserve structure
         String content = preElement.html();
 
@@ -412,21 +423,33 @@ public class MailParser {
         while (linkMatcher.find()) {
             String url = linkMatcher.group(1);
             String text = linkMatcher.group(2).trim();
-            // Rewrite openjdk mail links to our rendered path
-            String rewrittenUrl = linkRewriter.rewriteLink(url);
+            // Optionally rewrite openjdk mail links to our rendered path
+            String finalUrl = rewriteLinks ? linkRewriter.rewriteLink(url) : url;
 
             // Check if this link is already inside a markdown link syntax
             // by looking at what comes before the match
             int matchStart = linkMatcher.start();
             boolean insideMarkdownLink = matchStart > 0 && content.charAt(matchStart - 1) == '(';
 
+            // Check if URL is an OpenJDK mail link (for display text shortening)
+            Matcher openjdkMatcher = OPENJDK_MAIL_URL_PATTERN.matcher(url);
+            boolean isOpenjdkMailUrl = openjdkMatcher.matches();
+
             String replacement;
-            if (insideMarkdownLink || text.equals(url) || text.startsWith("http")) {
-                // Just output the URL - either we're inside markdown syntax or the text is the URL
-                replacement = rewrittenUrl;
+            if (insideMarkdownLink) {
+                // Already inside markdown link syntax - just output the URL
+                replacement = finalUrl;
+            } else if (rewriteLinks && isOpenjdkMailUrl) {
+                // For HTML render: create a proper link with shortened display text
+                // e.g., "hotspot-gc-dev/2026-January/056951.html"
+                String shortDisplay = openjdkMatcher.group(1) + "/" + openjdkMatcher.group(2) + "/" + openjdkMatcher.group(3) + ".html";
+                replacement = "[" + shortDisplay + "](" + finalUrl + ")";
+            } else if (text.equals(url) || text.startsWith("http")) {
+                // Text is the URL itself - output as-is (for markdown, keep original URL)
+                replacement = finalUrl;
             } else {
-                // Create a full markdown link
-                replacement = "[" + text + "](" + rewrittenUrl + ")";
+                // Create a full markdown link with original text
+                replacement = "[" + text + "](" + finalUrl + ")";
             }
             linkMatcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
         }

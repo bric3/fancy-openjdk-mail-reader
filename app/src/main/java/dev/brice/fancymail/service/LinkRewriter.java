@@ -95,8 +95,14 @@ public class LinkRewriter {
         return href;
     }
 
+    // Pattern to match markdown links with OpenJDK mail URLs: [text](url) or just (url) in markdown link syntax
+    private static final Pattern MARKDOWN_LINK_WITH_OPENJDK_URL = Pattern.compile(
+            "\\]\\((https?://mail\\.openjdk\\.org/pipermail/([^/]+)/([^/]+)/(\\d+)\\.html)\\)"
+    );
+
     /**
      * Rewrite markdown content links.
+     * Only rewrites URLs inside markdown link syntax [text](url), not bare URLs in text.
      *
      * @param markdown the markdown content
      * @param currentList the current mailing list (for relative links)
@@ -108,16 +114,18 @@ public class LinkRewriter {
             return null;
         }
 
-        // Rewrite full OpenJDK mail URLs in markdown
-        Matcher fullMatcher = OPENJDK_MAIL_PATTERN.matcher(markdown);
+        // Only rewrite OpenJDK mail URLs that are inside markdown link syntax [text](url)
+        // This preserves bare URLs like "full message: https://mail.openjdk.org/..."
+        Matcher linkMatcher = MARKDOWN_LINK_WITH_OPENJDK_URL.matcher(markdown);
         StringBuffer sb = new StringBuffer();
-        while (fullMatcher.find()) {
-            String list = fullMatcher.group(1);
-            String yearMonth = fullMatcher.group(2);
-            String id = fullMatcher.group(3);
-            fullMatcher.appendReplacement(sb, Matcher.quoteReplacement(pathsConfig.toRenderedPath(list, yearMonth, id)));
+        while (linkMatcher.find()) {
+            String list = linkMatcher.group(2);
+            String yearMonth = linkMatcher.group(3);
+            String id = linkMatcher.group(4);
+            String replacement = "](" + pathsConfig.toRenderedPath(list, yearMonth, id) + ")";
+            linkMatcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
         }
-        fullMatcher.appendTail(sb);
+        linkMatcher.appendTail(sb);
 
         return sb.toString();
     }
