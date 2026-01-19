@@ -64,8 +64,10 @@
     text-decoration: none;
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 4px 8px;
     font-size: 0.9em;
+    flex: 1;
 }
 
 .thread-link:hover {
@@ -96,6 +98,15 @@
 
 .thread-link.current .thread-author::before {
     content: "";
+}
+
+.thread-count {
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    background: var(--action-bg);
+    padding: 2px 8px;
+    border-radius: 12px;
+    white-space: nowrap;
 }
 
 /* Mobile responsive */

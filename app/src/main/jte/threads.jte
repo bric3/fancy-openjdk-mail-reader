@@ -205,14 +205,6 @@
         details[open] .thread-header-author {
             display: none;
         }
-        .thread-count {
-            font-size: 0.8em;
-            color: var(--text-secondary);
-            background: var(--action-bg);
-            padding: 2px 8px;
-            border-radius: 12px;
-            white-space: nowrap;
-        }
         .thread-author {
             font-style: italic;
         }
@@ -384,7 +376,7 @@
                 <li class="thread-item">
                     <details>
                         <summary class="thread-item-header">
-                            <i class="fa-solid fa-message thread-icon"></i>
+                            <i class="fa-solid fa-comments thread-icon"></i>
                             <div class="thread-info">
                                 <div class="thread-subject">${root.subject()}</div>
                             </div>

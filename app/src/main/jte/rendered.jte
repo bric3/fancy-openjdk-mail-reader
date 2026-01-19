@@ -510,10 +510,6 @@
             color: var(--text-secondary);
             font-size: 0.9em;
         }
-        .thread-count {
-            font-size: 0.85em;
-            color: var(--text-secondary);
-        }
         .thread-merkle {
             margin-top: 16px;
             padding-top: 12px;

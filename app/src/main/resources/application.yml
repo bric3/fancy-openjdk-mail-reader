@@ -93,7 +93,7 @@ messages:
     footer-view-markdown: View Markdown
     footer-view-original: View Original
     thread-title: Thread
-    thread-toggle: "messages in thread"
+    thread-toggle: messages
     thread-current: Current message
     thread-merkle-root: "Merkle root:"
   threads:

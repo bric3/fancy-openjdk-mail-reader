@@ -95,7 +95,7 @@ public class Messages {
         private String footerViewMarkdown = "View Markdown";
         private String footerViewOriginal = "View Original";
         private String threadTitle = "Thread";
-        private String threadToggle = "messages in thread";
+        private String threadToggle = "messages";
         private String threadCurrent = "Current message";
         private String threadMerkleRoot = "Merkle root:";
 
