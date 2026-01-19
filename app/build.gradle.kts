@@ -65,6 +65,9 @@ dependencies {
     testImplementation("org.mockito:mockito-core:5.14.2")
     testImplementation("org.mockito:mockito-junit-jupiter:5.14.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+
+    // Screenshots
+    testImplementation(libs.playwright)
 }
 
 application {
@@ -139,4 +142,23 @@ jib {
             "-XX:MaxRAMPercentage=75.0"
         )
     }
+}
+
+// Screenshot generation task using Playwright
+tasks.register<JavaExec>("generateScreenshots") {
+    description = "Generate light/dark mode screenshots with diagonal merge"
+    group = "documentation"
+
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass = "dev.brice.fancymail.screenshot.ScreenshotGenerator"
+
+    // Optional max height for mail content screenshot (default: no limit)
+    val mailContentHeight = providers.gradleProperty("mailContentHeight").getOrElse("0")
+
+    // Pass URLs and options as arguments
+    args = listOf(
+        "http://localhost:8080/",
+        "http://localhost:8080/rendered/amber-spec-experts/2026-January/004306.html",
+        "--mail-max-height=$mailContentHeight"
+    )
 }

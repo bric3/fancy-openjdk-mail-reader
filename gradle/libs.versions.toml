@@ -7,6 +7,7 @@ flexmark = "0.64.8"
 caffeine = "3.1.8"
 merkle-tree = "1.0.0"
 jte = "3.1.15"
+playwright = "1.49.0"
 logback = "1.5.15"
 jib = "3.5.2"
 
@@ -42,6 +43,9 @@ logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "lo
 micronaut-test-junit5 = { module = "io.micronaut.test:micronaut-test-junit5" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine" }
+
+# Screenshots
+playwright = { module = "com.microsoft.playwright:playwright", version.ref = "playwright" }
 
 [plugins]
 micronaut-application = { id = "io.micronaut.application", version.ref = "micronaut" }
