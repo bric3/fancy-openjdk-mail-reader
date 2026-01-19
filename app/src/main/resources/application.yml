@@ -53,6 +53,16 @@ fancymail:
       description: Project Panama (foreign function)
     valhalla-dev:
       description: Project Valhalla (value types)
+    babylon-dev:
+      description: Project Babylon (code reflection)
+    jextract-dev:
+      description: jextract tool development
+    jmc-dev:
+      description: JDK Mission Control
+    jol-dev:
+      description: Java Object Layout
+    serviceability-dev:
+      description: Serviceability development
     security-dev:
       description: Security development
     build-dev:

@@ -205,6 +205,56 @@
             font-size: 0.85em;
             color: var(--text-secondary);
         }
+        .all-lists {
+            margin-top: 20px;
+        }
+        .all-lists details {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 0;
+        }
+        .all-lists summary {
+            padding: 12px 15px;
+            cursor: pointer;
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .all-lists summary::-webkit-details-marker {
+            display: none;
+        }
+        .all-lists summary::before {
+            content: "▶";
+            font-size: 0.7em;
+            transition: transform 0.2s;
+        }
+        .all-lists details[open] summary::before {
+            transform: rotate(90deg);
+        }
+        .all-lists-content {
+            padding: 0 15px 15px 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .all-lists-link {
+            display: inline-block;
+            padding: 4px 10px;
+            background: var(--code-bg);
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-family: 'SF Mono', Monaco, monospace;
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: background 0.2s, color 0.2s;
+        }
+        .all-lists-link:hover {
+            background: var(--accent);
+            color: white;
+        }
         /* Mobile responsiveness */
         @media (max-width: 768px) {
             body {
@@ -281,6 +331,39 @@
                     <div class="mailing-list-desc">${mailingList.description()}</div>
                 </a>
                 @endfor
+            </div>
+            <div class="all-lists">
+                <details>
+                    <summary>All OpenJDK mailing lists</summary>
+                    <div class="all-lists-content">
+                        !{var allLists = java.util.List.of(
+                            "2d-dev", "aarch32-port-dev", "aarch64-port-dev", "adoption-discuss", "amber-dev",
+                            "amber-spec-comments", "amber-spec-experts", "amber-spec-observers", "anno-pipeline-dev",
+                            "announce", "apidiff-dev", "asmtools-dev", "audio-engine-dev", "awt-dev", "babylon-dev",
+                            "beans-dev", "bsd-port-dev", "btrace-dev", "build-dev", "build-infra-dev",
+                            "caciocavallo-dev", "classfile-api-dev", "client-libs-dev", "code-tools-dev",
+                            "coin-dev", "compiler-dev", "compiler-grammar-dev", "core-libs-dev", "crac-dev",
+                            "csr-discuss", "dio-dev", "discuss", "distro-pkg-dev", "doccheck-dev", "duke-dev",
+                            "galahad-dev", "graal-dev", "graphics-rasterizer-dev", "guide-dev", "guide-discuss",
+                            "haiku-port-dev", "harfbuzz-dev", "hotspot-compiler-dev", "hotspot-dev", "hotspot-gc-dev",
+                            "hotspot-jfr-dev", "hotspot-runtime-dev", "i18n-dev", "ide-support-dev", "javadoc-dev",
+                            "jcov-dev", "jcstress-dev", "jdk-dev", "jdk-updates-dev", "jemmy-dev", "jextract-dev",
+                            "jigsaw-dev", "jmc-dev", "jmh-dev", "jmh-jdk-microbenchmarks-dev", "jmx-dev", "jol-dev",
+                            "jtharness-dev", "jtreg-dev", "jtreg-use", "kona-dev", "kulla-dev", "lanai-dev",
+                            "leyden-dev", "lilliput-dev", "loom-dev", "macosx-port-dev", "members", "metropolis-dev",
+                            "mlvm-dev", "mobile-dev", "nashorn-dev", "net-dev", "nio-dev", "openjfx-dev",
+                            "panama-dev", "panama-spec-experts", "penrose-dev", "porters-dev", "portola-dev",
+                            "ppc-aix-port-dev", "quality-discuss", "riscv-port-dev", "s390x-port-dev", "sctp-dev",
+                            "security-dev", "serviceability-dev", "shenandoah-dev", "sigtest-dev", "skara-dev",
+                            "sound-dev", "swing-dev", "threeten-dev", "tsan-dev", "type-annotations-dev",
+                            "valhalla-dev", "valhalla-spec-experts", "verona-dev", "wakefield-dev", "webrev-dev",
+                            "zero-dev", "zgc-dev"
+                        );}
+                        @for(var list : allLists)
+                        <a href="${paths.toThreadsPath(list, currentMonth)}" class="all-lists-link">${list}</a>
+                        @endfor
+                    </div>
+                </details>
             </div>
         </div>
         @endif
