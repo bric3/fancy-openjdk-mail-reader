@@ -1034,6 +1034,7 @@ public class MailParser {
         boolean inListItem = false;
         boolean inCodeSection = false;
         String listIndent = "";  // Indentation to use for fenced block
+        int codeBaseIndent = 0;  // Base indentation of the code block (first code line's indent)
 
         for (int i = 0; i < lines.length; i++) {
             String line = lines[i];
@@ -1095,6 +1096,12 @@ public class MailParser {
                     continue;
                 }
 
+                // Calculate line's indentation
+                int lineIndent = 0;
+                while (lineIndent < line.length() && line.charAt(lineIndent) == ' ') {
+                    lineIndent++;
+                }
+
                 // Indented line - check if it looks like code
                 if (looksLikeCode(trimmed)) {
                     if (!inCodeSection) {
@@ -1105,14 +1112,18 @@ public class MailParser {
                             }
                         }
                         inCodeSection = true;
+                        codeBaseIndent = lineIndent;  // Record base indentation
                     }
-                    codeBlock.append(listIndent).append(trimmed).append("\n");
+                    // Preserve relative indentation: listIndent + (lineIndent - codeBaseIndent) spaces + trimmed
+                    int relativeIndent = Math.max(0, lineIndent - codeBaseIndent);
+                    codeBlock.append(listIndent).append(" ".repeat(relativeIndent)).append(trimmed).append("\n");
                     continue;
                 } else if (inCodeSection) {
                     // Non-code line while in code section
                     // Check if it might be part of the code (like a closing brace or continuation)
                     if (trimmed.matches("^[}\\]);]+$") || trimmed.startsWith("//")) {
-                        codeBlock.append(listIndent).append(trimmed).append("\n");
+                        int relativeIndent = Math.max(0, lineIndent - codeBaseIndent);
+                        codeBlock.append(listIndent).append(" ".repeat(relativeIndent)).append(trimmed).append("\n");
                         continue;
                     }
                     // End code section
@@ -1621,6 +1632,11 @@ public class MailParser {
             "^\\w+\\s*=\\s*\\w+\\s*;\\s*$"     // identifier = identifier;
     );
 
+    // Pattern for variable declarations without initializers: Type1 v1; String name;
+    private static final Pattern DECLARATION_PATTERN = Pattern.compile(
+            "^[A-Z]\\w*\\s+\\w+\\s*;\\s*$"     // TypeName identifier;
+    );
+
     // Pattern for Java keywords - these alone are NOT enough to identify code
     // because prose about Java naturally uses words like "record", "class", "case"
     private static final Pattern CODE_KEYWORD_PATTERN = Pattern.compile(
@@ -1788,6 +1804,11 @@ public class MailParser {
 
         // Check for simple assignments (a = x;)
         if (SIMPLE_ASSIGNMENT_PATTERN.matcher(lineWithoutLinks).find()) {
+            return true;
+        }
+
+        // Check for variable declarations without initializers (Type1 v1;)
+        if (DECLARATION_PATTERN.matcher(lineWithoutLinks).find()) {
             return true;
         }
 
