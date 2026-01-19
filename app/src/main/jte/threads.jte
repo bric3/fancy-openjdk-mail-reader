@@ -18,14 +18,7 @@
 @param boolean hideBot = true
 @param dev.brice.fancymail.config.PathsConfig paths = null
 
-!{var isBotMessage = new java.util.function.Predicate<String>() {
-    public boolean test(String subject) {
-        return subject.startsWith("RFR:") || subject.startsWith("Re: RFR:")
-            || subject.startsWith("Integrated:") || subject.startsWith("Re: Integrated:")
-            || subject.startsWith("Withdrawn:") || subject.startsWith("Re: Withdrawn:")
-            || subject.startsWith("git:");
-    }
-};}
+!{var isBotMessage = dev.brice.fancymail.model.BotMessageFilter.instance();}
 
 <!DOCTYPE html>
 <html lang="en">
