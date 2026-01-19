@@ -8,7 +8,67 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-/* Shared thread tree styles used by threads.jte and rendered.jte */
+/* ==========================================================================
+   Header Styles
+   ========================================================================== */
+
+.header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    margin: -40px -20px 30px -20px;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header a {
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.header a:hover {
+    text-decoration: underline;
+}
+
+.header .home-link {
+    font-size: 1.2em;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.header .home-link:hover {
+    background: rgba(255, 255, 255, 0.2);
+    text-decoration: none;
+}
+
+.header .site-name {
+    color: white;
+    font-size: 1.3em;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.header .nav-link {
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    font-size: 0.9em;
+    transition: background 0.2s;
+}
+
+.header .nav-link:hover {
+    background: rgba(255, 255, 255, 0.3);
+    text-decoration: none;
+}
+
+/* ==========================================================================
+   Thread Tree Styles
+   ========================================================================== */
 
 .thread-content {
     padding: 0 16px 16px 16px;
@@ -46,7 +106,6 @@
     background: var(--action-hover);
 }
 
-/* Current entry highlighting (used in rendered mail view) */
 .thread-entry.current > .thread-entry-content,
 .thread-entry.current > .thread-entry-content:hover {
     background: var(--accent-light);
@@ -109,12 +168,25 @@
     white-space: nowrap;
 }
 
-/* Mobile responsive */
+/* ==========================================================================
+   Mobile Responsive
+   ========================================================================== */
+
 @media (max-width: 768px) {
+    .header {
+        margin: -20px -12px 20px -12px;
+        padding: 15px 12px;
+    }
     .thread-content {
         padding-left: 12px;
     }
     .thread-tree ul {
         padding-left: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .header {
+        margin: -12px -8px 16px -8px;
     }
 }
