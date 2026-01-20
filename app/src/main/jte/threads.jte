@@ -10,6 +10,10 @@
 @param String title
 @param String list = ""
 @param String yearMonth = ""
+@param String prevMonth = ""
+@param String nextMonth = ""
+@param boolean nextMonthDisabled = false
+@param dev.brice.fancymail.model.ArchiveIndex archiveIndex = null
 @param dev.brice.fancymail.model.ThreadTree threadTree = null
 @param String error = null
 @param String stackTrace = null
@@ -19,6 +23,7 @@
 @param dev.brice.fancymail.config.PathsConfig paths = null
 
 !{var isBotMessage = dev.brice.fancymail.model.BotMessageFilter.instance();}
+!{var currentYearMonth = java.time.YearMonth.now();}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -257,6 +262,186 @@
         .filter-toggle i {
             font-size: 0.9em;
         }
+        /* Month navigation */
+        .month-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .month-nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--action-bg);
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9em;
+            color: var(--text-primary);
+            transition: background 0.2s, opacity 0.2s;
+            border: 1px solid var(--border-color);
+        }
+        .month-nav-btn:hover:not(.disabled) {
+            background: var(--action-hover);
+        }
+        .month-nav-btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .month-nav-btn i {
+            font-size: 0.85em;
+        }
+        .month-nav-current {
+            text-align: center;
+            flex: 1;
+        }
+        .month-nav-current .month-label {
+            font-weight: 600;
+            color: var(--text-heading);
+            font-size: 1.1em;
+        }
+        /* Calendar grid */
+        .calendar-picker {
+            background: var(--card-bg);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+        .calendar-picker summary {
+            padding: 16px 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            font-weight: 600;
+            color: var(--text-heading);
+            list-style: none;
+        }
+        .calendar-picker summary::-webkit-details-marker {
+            display: none;
+        }
+        .calendar-picker summary:hover {
+            background: var(--action-hover);
+        }
+        .calendar-picker summary .calendar-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .calendar-picker summary .calendar-icon {
+            color: var(--accent);
+        }
+        .calendar-picker summary .chevron {
+            transition: transform 0.2s;
+            color: var(--text-secondary);
+        }
+        .calendar-picker[open] summary .chevron {
+            transform: rotate(180deg);
+        }
+        .calendar-content {
+            padding: 0 20px 20px;
+        }
+        .calendar-year {
+            margin-bottom: 16px;
+        }
+        .calendar-year:last-child {
+            margin-bottom: 0;
+        }
+        .calendar-year-header {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .calendar-months {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 6px;
+        }
+        .calendar-month {
+            padding: 8px 4px;
+            text-align: center;
+            border-radius: 6px;
+            font-size: 0.85em;
+            text-decoration: none;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .calendar-month.available {
+            background: var(--action-bg);
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+        .calendar-month.available:hover {
+            background: var(--accent-light);
+            color: var(--accent);
+            transform: scale(1.05);
+        }
+        .calendar-month.unavailable {
+            color: var(--text-secondary);
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .calendar-month.current {
+            background: var(--accent);
+            color: white;
+            font-weight: 600;
+        }
+        .calendar-month.current:hover {
+            background: var(--accent);
+            color: white;
+            transform: none;
+        }
+        .calendar-month.future {
+            color: var(--text-secondary);
+            opacity: 0.3;
+        }
+        /* Recent months quick access */
+        .recent-months {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .recent-month {
+            padding: 8px 14px;
+            background: var(--action-bg);
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.85em;
+            color: var(--text-primary);
+            transition: background 0.2s, transform 0.1s;
+            border: 1px solid var(--border-color);
+        }
+        .recent-month:hover {
+            background: var(--accent-light);
+            color: var(--accent);
+            transform: translateY(-1px);
+        }
+        .recent-month.current {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+        .recent-month.current:hover {
+            background: var(--accent);
+            color: white;
+            transform: none;
+        }
+        .recent-month.unavailable {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
         /* Mobile responsiveness */
         @media (max-width: 768px) {
             body {
@@ -280,8 +465,17 @@
                 flex-direction: column;
                 gap: 10px;
             }
+            .month-nav-btn span {
+                display: none;
+            }
+            .calendar-months {
+                grid-template-columns: repeat(4, 1fr);
+            }
         }
         @media (max-width: 480px) {
+            .calendar-months {
+                grid-template-columns: repeat(3, 1fr);
+            }
             body {
                 padding: 12px 8px;
             }
@@ -312,10 +506,155 @@
                 <pre class="stack-trace-content">${stackTrace}</pre>
             </details>
             @endif
+            <h1>${list}</h1>
+            <nav class="month-nav">
+                <a href="${paths.toThreadsPath(list, prevMonth)}" class="month-nav-btn" title="${msg.prevMonth()}">
+                    <i class="fa-solid fa-chevron-left"></i>
+                    <span>${prevMonth}</span>
+                </a>
+                <div class="month-nav-current">
+                    <span class="month-label">${yearMonth}</span>
+                </div>
+                @if(nextMonthDisabled)
+                <span class="month-nav-btn disabled" title="${msg.nextMonth()}">
+                    <span>${nextMonth}</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </span>
+                @else
+                <a href="${paths.toThreadsPath(list, nextMonth)}" class="month-nav-btn" title="${msg.nextMonth()}">
+                    <span>${nextMonth}</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </a>
+                @endif
+            </nav>
+            @if(archiveIndex != null)
+            <div class="recent-months">
+                @for(int i = 5; i >= 0; i--)
+                !{var recentYm = currentYearMonth.minusMonths(i);}
+                !{var recentYmStr = dev.brice.fancymail.model.ArchiveIndex.formatYearMonth(recentYm.getYear(), recentYm.getMonthValue());}
+                !{var recentLabel = recentYm.getMonth().getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH) + " " + recentYm.getYear();}
+                !{var isRecentCurrent = recentYmStr.equals(yearMonth);}
+                !{var isRecentAvailable = archiveIndex.isAvailable(recentYmStr);}
+                @if(isRecentCurrent)
+                <span class="recent-month current">${recentLabel}</span>
+                @elseif(isRecentAvailable)
+                <a href="${paths.toThreadsPath(list, recentYmStr)}" class="recent-month">${recentLabel}</a>
+                @else
+                <span class="recent-month unavailable">${recentLabel}</span>
+                @endif
+                @endfor
+            </div>
+            <details class="calendar-picker">
+                <summary>
+                    <span class="calendar-title">
+                        <i class="fa-solid fa-calendar-days calendar-icon"></i>
+                        <span>Browse archive</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-down chevron"></i>
+                </summary>
+                <div class="calendar-content">
+                    @for(int year : archiveIndex.years())
+                    <div class="calendar-year">
+                        <div class="calendar-year-header">${year}</div>
+                        <div class="calendar-months">
+                            @for(int month = 1; month <= 12; month++)
+                            !{var ym = dev.brice.fancymail.model.ArchiveIndex.formatYearMonth(year, month);}
+                            !{var shortName = dev.brice.fancymail.model.ArchiveIndex.shortMonthName(month);}
+                            !{var isAvailable = archiveIndex.isAvailable(year, month);}
+                            !{var isCurrent = ym.equals(yearMonth);}
+                            !{var isFuture = java.time.YearMonth.of(year, month).isAfter(currentYearMonth);}
+                            @if(isCurrent)
+                            <span class="calendar-month current">${shortName}</span>
+                            @elseif(isFuture)
+                            <span class="calendar-month future">${shortName}</span>
+                            @elseif(isAvailable)
+                            <a href="${paths.toThreadsPath(list, ym)}" class="calendar-month available">${shortName}</a>
+                            @else
+                            <span class="calendar-month unavailable">${shortName}</span>
+                            @endif
+                            @endfor
+                        </div>
+                    </div>
+                    @endfor
+                </div>
+            </details>
+            @endif
             <p><a href="/">&#8592; ${msg.errorGoback()}</a></p>
         @else
             <h1>${list}</h1>
-            <p class="subtitle">${yearMonth}</p>
+            <nav class="month-nav">
+                <a href="${paths.toThreadsPath(list, prevMonth)}" class="month-nav-btn" title="${msg.prevMonth()}">
+                    <i class="fa-solid fa-chevron-left"></i>
+                    <span>${prevMonth}</span>
+                </a>
+                <div class="month-nav-current">
+                    <span class="month-label">${yearMonth}</span>
+                </div>
+                @if(nextMonthDisabled)
+                <span class="month-nav-btn disabled" title="${msg.nextMonth()}">
+                    <span>${nextMonth}</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </span>
+                @else
+                <a href="${paths.toThreadsPath(list, nextMonth)}" class="month-nav-btn" title="${msg.nextMonth()}">
+                    <span>${nextMonth}</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </a>
+                @endif
+            </nav>
+
+            @if(archiveIndex != null)
+            <div class="recent-months">
+                @for(int i = 5; i >= 0; i--)
+                !{var recentYm = currentYearMonth.minusMonths(i);}
+                !{var recentYmStr = dev.brice.fancymail.model.ArchiveIndex.formatYearMonth(recentYm.getYear(), recentYm.getMonthValue());}
+                !{var recentLabel = recentYm.getMonth().getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH) + " " + recentYm.getYear();}
+                !{var isRecentCurrent = recentYmStr.equals(yearMonth);}
+                !{var isRecentAvailable = archiveIndex.isAvailable(recentYmStr);}
+                @if(isRecentCurrent)
+                <span class="recent-month current">${recentLabel}</span>
+                @elseif(isRecentAvailable)
+                <a href="${paths.toThreadsPath(list, recentYmStr)}" class="recent-month">${recentLabel}</a>
+                @else
+                <span class="recent-month unavailable">${recentLabel}</span>
+                @endif
+                @endfor
+            </div>
+            <details class="calendar-picker">
+                <summary>
+                    <span class="calendar-title">
+                        <i class="fa-solid fa-calendar-days calendar-icon"></i>
+                        <span>Browse archive</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-down chevron"></i>
+                </summary>
+                <div class="calendar-content">
+                    @for(int year : archiveIndex.years())
+                    <div class="calendar-year">
+                        <div class="calendar-year-header">${year}</div>
+                        <div class="calendar-months">
+                            @for(int month = 1; month <= 12; month++)
+                            !{var ym = dev.brice.fancymail.model.ArchiveIndex.formatYearMonth(year, month);}
+                            !{var shortName = dev.brice.fancymail.model.ArchiveIndex.shortMonthName(month);}
+                            !{var isAvailable = archiveIndex.isAvailable(year, month);}
+                            !{var isCurrent = ym.equals(yearMonth);}
+                            !{var isFuture = java.time.YearMonth.of(year, month).isAfter(currentYearMonth);}
+                            @if(isCurrent)
+                            <span class="calendar-month current">${shortName}</span>
+                            @elseif(isFuture)
+                            <span class="calendar-month future">${shortName}</span>
+                            @elseif(isAvailable)
+                            <a href="${paths.toThreadsPath(list, ym)}" class="calendar-month available">${shortName}</a>
+                            @else
+                            <span class="calendar-month unavailable">${shortName}</span>
+                            @endif
+                            @endfor
+                        </div>
+                    </div>
+                    @endfor
+                </div>
+            </details>
+            @endif
 
             @if(threadTree != null && !threadTree.roots().isEmpty())
             !{var filteredRoots = threadTree.roots().stream()

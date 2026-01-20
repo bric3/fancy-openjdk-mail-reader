@@ -69,4 +69,17 @@ public class MailFetcher {
         LOG.debug("Fetching thread page: {}", path);
         return httpClient.toBlocking().retrieve(path);
     }
+
+    /**
+     * Fetches the archive index page for a mailing list.
+     * This page lists all available months for the list.
+     *
+     * @param list the mailing list name (e.g., "amber-spec-experts")
+     * @return the HTML content of the archive index
+     */
+    public String fetchArchiveIndex(String list) {
+        String path = "/pipermail/" + list + "/";
+        LOG.debug("Fetching archive index: {}", path);
+        return httpClient.toBlocking().retrieve(path);
+    }
 }

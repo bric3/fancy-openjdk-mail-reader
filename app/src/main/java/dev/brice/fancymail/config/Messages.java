@@ -178,6 +178,8 @@ public class Messages {
         private String threadsTitle = "Threads";
         private String totalMessages = "messages";
         private String noThreads = "No threads found for this month";
+        private String prevMonth = "Previous month";
+        private String nextMonth = "Next month";
 
         public String getBack() { return back; }
         public void setBack(String back) { this.back = back; }
@@ -191,6 +193,10 @@ public class Messages {
         public void setTotalMessages(String totalMessages) { this.totalMessages = totalMessages; }
         public String getNoThreads() { return noThreads; }
         public void setNoThreads(String noThreads) { this.noThreads = noThreads; }
+        public String getPrevMonth() { return prevMonth; }
+        public void setPrevMonth(String prevMonth) { this.prevMonth = prevMonth; }
+        public String getNextMonth() { return nextMonth; }
+        public void setNextMonth(String nextMonth) { this.nextMonth = nextMonth; }
 
         // Template-friendly accessors
         public String back() { return back; }
@@ -199,5 +205,7 @@ public class Messages {
         public String threadsTitle() { return threadsTitle; }
         public String totalMessages() { return totalMessages; }
         public String noThreads() { return noThreads; }
+        public String prevMonth() { return prevMonth; }
+        public String nextMonth() { return nextMonth; }
     }
 }

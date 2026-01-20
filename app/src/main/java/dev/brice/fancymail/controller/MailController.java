@@ -15,10 +15,12 @@ import dev.brice.fancymail.config.Messages.Index;
 import dev.brice.fancymail.config.Messages.Rendered;
 import dev.brice.fancymail.config.Messages.Threads;
 import dev.brice.fancymail.config.PathsConfig;
+import dev.brice.fancymail.model.ArchiveIndex;
 import dev.brice.fancymail.model.MailPath;
 import dev.brice.fancymail.model.ParsedMail;
 import dev.brice.fancymail.model.ThreadContext;
 import dev.brice.fancymail.model.ThreadTree;
+import dev.brice.fancymail.service.ArchiveIndexService;
 import dev.brice.fancymail.service.MailService;
 import dev.brice.fancymail.service.ThreadService;
 import io.micronaut.http.HttpResponse;
@@ -41,6 +43,8 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URI;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.HashMap;
 import java.util.List;
@@ -58,6 +62,7 @@ public class MailController {
 
     private final MailService mailService;
     private final ThreadService threadService;
+    private final ArchiveIndexService archiveIndexService;
     private final Index indexMessages;
     private final Rendered renderedMessages;
     private final Threads threadsMessages;
@@ -65,9 +70,10 @@ public class MailController {
     private final PathsConfig pathsConfig;
     private final List<MailingListsConfig> mailingLists;
 
-    public MailController(MailService mailService, ThreadService threadService, Index indexMessages, Rendered renderedMessages, Threads threadsMessages, DevModeConfig devModeConfig, PathsConfig pathsConfig, List<MailingListsConfig> mailingLists) {
+    public MailController(MailService mailService, ThreadService threadService, ArchiveIndexService archiveIndexService, Index indexMessages, Rendered renderedMessages, Threads threadsMessages, DevModeConfig devModeConfig, PathsConfig pathsConfig, List<MailingListsConfig> mailingLists) {
         this.mailService = mailService;
         this.threadService = threadService;
+        this.archiveIndexService = archiveIndexService;
         this.indexMessages = indexMessages;
         this.renderedMessages = renderedMessages;
         this.threadsMessages = threadsMessages;
@@ -99,6 +105,48 @@ public class MailController {
         LocalDate now = LocalDate.now();
         String month = now.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
         return now.getYear() + "-" + month;
+    }
+
+    private static final DateTimeFormatter YEAR_MONTH_PARSER = DateTimeFormatter.ofPattern("yyyy-MMMM", Locale.ENGLISH);
+
+    /**
+     * Parses a year-month string in OpenJDK format (e.g., "2026-January") to YearMonth.
+     */
+    private YearMonth parseYearMonth(String yearMonth) {
+        return YearMonth.parse(yearMonth, YEAR_MONTH_PARSER);
+    }
+
+    /**
+     * Formats a YearMonth to OpenJDK format (e.g., "2026-January").
+     */
+    private String formatYearMonth(YearMonth ym) {
+        String month = ym.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
+        return ym.getYear() + "-" + month;
+    }
+
+    /**
+     * Returns the previous month in OpenJDK format.
+     */
+    private String getPreviousMonth(String yearMonth) {
+        YearMonth ym = parseYearMonth(yearMonth);
+        return formatYearMonth(ym.minusMonths(1));
+    }
+
+    /**
+     * Returns the next month in OpenJDK format.
+     */
+    private String getNextMonth(String yearMonth) {
+        YearMonth ym = parseYearMonth(yearMonth);
+        return formatYearMonth(ym.plusMonths(1));
+    }
+
+    /**
+     * Checks if the given yearMonth is the current month or in the future.
+     */
+    private boolean isCurrentOrFutureMonth(String yearMonth) {
+        YearMonth ym = parseYearMonth(yearMonth);
+        YearMonth current = YearMonth.now();
+        return !ym.isBefore(current);
     }
 
     /**
@@ -204,8 +252,21 @@ public class MailController {
 
         LOG.info("Showing threads for {}/{} (hideBot={})", list, yearMonth, hideBot);
 
+        // Fetch archive index for calendar navigation (non-critical)
+        ArchiveIndex archiveIndex = null;
+        try {
+            archiveIndex = archiveIndexService.getArchiveIndex(list);
+        } catch (Exception e) {
+            LOG.warn("Could not fetch archive index for {}: {}", list, e.getMessage());
+        }
+
         try {
             ThreadTree threadTree = threadService.getThreadTree(list, yearMonth);
+
+            // Compute navigation months
+            String prevMonth = getPreviousMonth(yearMonth);
+            String nextMonth = getNextMonth(yearMonth);
+            boolean nextMonthDisabled = isCurrentOrFutureMonth(yearMonth);
 
             Map<String, Object> model = new HashMap<>();
             model.put("title", list + " - " + yearMonth);
@@ -213,6 +274,10 @@ public class MailController {
             model.put("yearMonth", yearMonth);
             model.put("threadTree", threadTree);
             model.put("hideBot", hideBot);
+            model.put("prevMonth", prevMonth);
+            model.put("nextMonth", nextMonth);
+            model.put("nextMonthDisabled", nextMonthDisabled);
+            model.put("archiveIndex", archiveIndex);
             model.put("msg", threadsMessages);
             model.put("devMode", devModeConfig.enabled());
             model.put("paths", pathsConfig);
@@ -226,10 +291,19 @@ public class MailController {
                 e.printStackTrace(new PrintWriter(sw));
                 stackTrace = sw.toString();
             }
+            // Still compute navigation months so user can navigate away from error
+            String prevMonth = getPreviousMonth(yearMonth);
+            String nextMonth = getNextMonth(yearMonth);
+            boolean nextMonthDisabled = isCurrentOrFutureMonth(yearMonth);
+
             Map<String, Object> errorModel = new HashMap<>();
             errorModel.put("title", "Error");
             errorModel.put("list", list);
             errorModel.put("yearMonth", yearMonth);
+            errorModel.put("prevMonth", prevMonth);
+            errorModel.put("nextMonth", nextMonth);
+            errorModel.put("nextMonthDisabled", nextMonthDisabled);
+            errorModel.put("archiveIndex", archiveIndex);
             errorModel.put("error", errorMessage);
             errorModel.put("stackTrace", stackTrace);
             errorModel.put("msg", threadsMessages);
