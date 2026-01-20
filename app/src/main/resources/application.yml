@@ -76,7 +76,6 @@ messages:
     form-label: "Paste an OpenJDK mailing list URL:"
     form-placeholder: "https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004307.html"
     form-submit: "Read it!"
-    example-title: Example URL
     feature-clean-title: Clean Layout
     feature-clean-desc: Removes navigation clutter and formats content beautifully
     feature-code-title: Code Highlighting
@@ -113,3 +112,5 @@ messages:
     threads-title: Threads
     total-messages: messages
     no-threads: No threads found for this month
+    prev-month: Previous month
+    next-month: Next month

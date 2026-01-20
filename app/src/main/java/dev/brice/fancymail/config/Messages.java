@@ -13,6 +13,7 @@ import io.micronaut.context.annotation.ConfigurationProperties;
 
 /**
  * UI messages configuration loaded from application.yml.
+ * All values must be defined in the YAML configuration.
  */
 @ConfigurationProperties("messages")
 public class Messages {
@@ -20,18 +21,17 @@ public class Messages {
     // Index page messages
     @ConfigurationProperties("index")
     public static class Index {
-        private String title = "Fancy Mail";
-        private String subtitle = "Beautify OpenJDK mailing list emails";
-        private String formLabel = "Paste an OpenJDK mailing list URL:";
-        private String formPlaceholder = "https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004307.html";
-        private String formSubmit = "Read it!";
-        private String exampleTitle = "Example URL";
-        private String featureCleanTitle = "Clean Layout";
-        private String featureCleanDesc = "Removes navigation clutter and formats content beautifully";
-        private String featureCodeTitle = "Code Highlighting";
-        private String featureCodeDesc = "Properly formatted code blocks with syntax highlighting";
-        private String featureLinksTitle = "Link Rewriting";
-        private String featureLinksDesc = "Links to other mails open in this reader too";
+        private String title;
+        private String subtitle;
+        private String formLabel;
+        private String formPlaceholder;
+        private String formSubmit;
+        private String featureCleanTitle;
+        private String featureCleanDesc;
+        private String featureCodeTitle;
+        private String featureCodeDesc;
+        private String featureLinksTitle;
+        private String featureLinksDesc;
 
         public String getTitle() { return title; }
         public void setTitle(String title) { this.title = title; }
@@ -43,8 +43,6 @@ public class Messages {
         public void setFormPlaceholder(String formPlaceholder) { this.formPlaceholder = formPlaceholder; }
         public String getFormSubmit() { return formSubmit; }
         public void setFormSubmit(String formSubmit) { this.formSubmit = formSubmit; }
-        public String getExampleTitle() { return exampleTitle; }
-        public void setExampleTitle(String exampleTitle) { this.exampleTitle = exampleTitle; }
         public String getFeatureCleanTitle() { return featureCleanTitle; }
         public void setFeatureCleanTitle(String featureCleanTitle) { this.featureCleanTitle = featureCleanTitle; }
         public String getFeatureCleanDesc() { return featureCleanDesc; }
@@ -64,7 +62,6 @@ public class Messages {
         public String formLabel() { return formLabel; }
         public String formPlaceholder() { return formPlaceholder; }
         public String formSubmit() { return formSubmit; }
-        public String exampleTitle() { return exampleTitle; }
         public String featureCleanTitle() { return featureCleanTitle; }
         public String featureCleanDesc() { return featureCleanDesc; }
         public String featureCodeTitle() { return featureCodeTitle; }
@@ -76,28 +73,28 @@ public class Messages {
     // Rendered page messages
     @ConfigurationProperties("rendered")
     public static class Rendered {
-        private String back = "Back to Fancy Mail";
-        private String errorLabel = "Error:";
-        private String errorGoback = "Go back and try another URL";
-        private String metaFrom = "From:";
-        private String metaDate = "Date:";
-        private String metaList = "List:";
-        private String metaOriginal = "Original:";
-        private String navNoPrevious = "No previous message";
-        private String navNoNext = "No next message";
-        private String navSortBy = "Sort by:";
-        private String navDate = "date";
-        private String navThread = "thread";
-        private String navSubject = "subject";
-        private String navAuthor = "author";
-        private String footerSource = "Source:";
-        private String footerMailingList = "mailing list";
-        private String footerViewMarkdown = "View Markdown";
-        private String footerViewOriginal = "View Original";
-        private String threadTitle = "Thread";
-        private String threadToggle = "messages";
-        private String threadCurrent = "Current message";
-        private String threadMerkleRoot = "Merkle root:";
+        private String back;
+        private String errorLabel;
+        private String errorGoback;
+        private String metaFrom;
+        private String metaDate;
+        private String metaList;
+        private String metaOriginal;
+        private String navNoPrevious;
+        private String navNoNext;
+        private String navSortBy;
+        private String navDate;
+        private String navThread;
+        private String navSubject;
+        private String navAuthor;
+        private String footerSource;
+        private String footerMailingList;
+        private String footerViewMarkdown;
+        private String footerViewOriginal;
+        private String threadTitle;
+        private String threadToggle;
+        private String threadCurrent;
+        private String threadMerkleRoot;
 
         public String getBack() { return back; }
         public void setBack(String back) { this.back = back; }
@@ -172,14 +169,14 @@ public class Messages {
     // Threads page messages
     @ConfigurationProperties("threads")
     public static class Threads {
-        private String back = "Back to Fancy Mail";
-        private String errorLabel = "Error:";
-        private String errorGoback = "Go back and try again";
-        private String threadsTitle = "Threads";
-        private String totalMessages = "messages";
-        private String noThreads = "No threads found for this month";
-        private String prevMonth = "Previous month";
-        private String nextMonth = "Next month";
+        private String back;
+        private String errorLabel;
+        private String errorGoback;
+        private String threadsTitle;
+        private String totalMessages;
+        private String noThreads;
+        private String prevMonth;
+        private String nextMonth;
 
         public String getBack() { return back; }
         public void setBack(String back) { this.back = back; }
