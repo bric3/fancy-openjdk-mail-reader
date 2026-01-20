@@ -48,4 +48,19 @@ public class MailingListsConfig {
     public String description() {
         return description;
     }
+
+    private static final java.util.regex.Pattern PAREN_PATTERN = java.util.regex.Pattern.compile("\\(([^)]+)\\)");
+
+    /**
+     * Returns the description with non-breaking spaces within parentheses
+     * to prevent line breaks in the middle of parenthetical content.
+     */
+    public String descriptionNbsp() {
+        if (description == null) {
+            return null;
+        }
+        // Replace spaces within parentheses with non-breaking spaces
+        return PAREN_PATTERN.matcher(description).replaceAll(
+                match -> "(" + match.group(1).replace(" ", "\u00A0") + ")");
+    }
 }

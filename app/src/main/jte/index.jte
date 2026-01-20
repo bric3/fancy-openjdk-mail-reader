@@ -328,7 +328,7 @@
                 @for(var mailingList : mailingLists)
                 <a href="${paths.toThreadsPath(mailingList.name(), currentMonth)}" class="mailing-list-item">
                     <div class="mailing-list-name">${mailingList.name()}</div>
-                    <div class="mailing-list-desc">${mailingList.description()}</div>
+                    <div class="mailing-list-desc">${mailingList.descriptionNbsp()}</div>
                 </a>
                 @endfor
             </div>
