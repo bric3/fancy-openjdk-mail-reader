@@ -24,7 +24,7 @@ public class Messages {
         private String subtitle = "Beautify OpenJDK mailing list emails";
         private String formLabel = "Paste an OpenJDK mailing list URL:";
         private String formPlaceholder = "https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004307.html";
-        private String formSubmit = "Beautify";
+        private String formSubmit = "Read it!";
         private String exampleTitle = "Example URL";
         private String featureCleanTitle = "Clean Layout";
         private String featureCleanDesc = "Removes navigation clutter and formats content beautifully";
