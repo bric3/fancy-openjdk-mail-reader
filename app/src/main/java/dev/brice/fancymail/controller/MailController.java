@@ -248,9 +248,10 @@ public class MailController {
     public Map<String, Object> threads(
             @PathVariable String list,
             @PathVariable String yearMonth,
-            @QueryValue(value = "hideBot", defaultValue = "true") boolean hideBot) {
+            @QueryValue(value = "hideBot", defaultValue = "true") boolean hideBot,
+            @QueryValue(value = "hideCfv", defaultValue = "true") boolean hideCfv) {
 
-        LOG.info("Showing threads for {}/{} (hideBot={})", list, yearMonth, hideBot);
+        LOG.info("Showing threads for {}/{} (hideBot={}, hideCfv={})", list, yearMonth, hideBot, hideCfv);
 
         // Fetch archive index for calendar navigation (non-critical)
         ArchiveIndex archiveIndex = null;
@@ -274,6 +275,7 @@ public class MailController {
             model.put("yearMonth", yearMonth);
             model.put("threadTree", threadTree);
             model.put("hideBot", hideBot);
+            model.put("hideCfv", hideCfv);
             model.put("prevMonth", prevMonth);
             model.put("nextMonth", nextMonth);
             model.put("nextMonthDisabled", nextMonthDisabled);
@@ -300,6 +302,8 @@ public class MailController {
             errorModel.put("title", "Error");
             errorModel.put("list", list);
             errorModel.put("yearMonth", yearMonth);
+            errorModel.put("hideBot", hideBot);
+            errorModel.put("hideCfv", hideCfv);
             errorModel.put("prevMonth", prevMonth);
             errorModel.put("nextMonth", nextMonth);
             errorModel.put("nextMonthDisabled", nextMonthDisabled);

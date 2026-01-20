@@ -20,9 +20,11 @@
 @param dev.brice.fancymail.config.Messages.Threads msg = null
 @param boolean devMode = false
 @param boolean hideBot = true
+@param boolean hideCfv = true
 @param dev.brice.fancymail.config.PathsConfig paths = null
 
 !{var isBotMessage = dev.brice.fancymail.model.BotMessageFilter.instance();}
+!{var isCfvMessage = dev.brice.fancymail.model.CfvMessageFilter.instance();}
 !{var currentYearMonth = java.time.YearMonth.now();}
 
 <!DOCTYPE html>
@@ -659,8 +661,11 @@
             @if(threadTree != null && !threadTree.roots().isEmpty())
             !{var filteredRoots = threadTree.roots().stream()
                 .filter(r -> !hideBot || !isBotMessage.test(r.subject()))
+                .filter(r -> !hideCfv || !isCfvMessage.test(r.subject()))
                 .toList();}
             !{var filteredCount = filteredRoots.stream().mapToInt(r -> r.totalCount()).sum();}
+            !{var hiddenBotCount = (int) threadTree.roots().stream().filter(r -> isBotMessage.test(r.subject())).count();}
+            !{var hiddenCfvCount = (int) threadTree.roots().stream().filter(r -> isCfvMessage.test(r.subject())).count();}
             !{var hiddenCount = threadTree.roots().size() - filteredRoots.size();}
 
             <div class="stats">
@@ -679,14 +684,25 @@
             <div class="filters">
                 <span class="filter-label">Filter:</span>
                 @if(hideBot)
-                <a href="?hideBot=false" class="filter-toggle active">
+                <a href="?hideBot=false&hideCfv=${hideCfv}" class="filter-toggle active">
                     <i class="fa-solid fa-robot"></i>
-                    <span>Hide bot messages (${hiddenCount} hidden)</span>
+                    <span>Hide bot (${hiddenBotCount})</span>
                 </a>
                 @else
-                <a href="?hideBot=true" class="filter-toggle">
+                <a href="?hideBot=true&hideCfv=${hideCfv}" class="filter-toggle">
                     <i class="fa-regular fa-robot"></i>
-                    <span>Hide bot messages</span>
+                    <span>Hide bot (${hiddenBotCount})</span>
+                </a>
+                @endif
+                @if(hideCfv)
+                <a href="?hideBot=${hideBot}&hideCfv=false" class="filter-toggle active">
+                    <i class="fa-solid fa-user-check"></i>
+                    <span>Hide CFV (${hiddenCfvCount})</span>
+                </a>
+                @else
+                <a href="?hideBot=${hideBot}&hideCfv=true" class="filter-toggle">
+                    <i class="fa-regular fa-user"></i>
+                    <span>Hide CFV (${hiddenCfvCount})</span>
                 </a>
                 @endif
             </div>
