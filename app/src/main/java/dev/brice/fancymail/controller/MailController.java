@@ -88,11 +88,14 @@ public class MailController {
     @Get("/")
     @View("index")
     public Map<String, Object> index() {
+        var sortedMailingLists = mailingLists.stream()
+                .sorted(java.util.Comparator.comparing(MailingListsConfig::name))
+                .toList();
         return Map.of(
                 "title", "Fancy Mail - OpenJDK Mailing List Beautifier",
                 "msg", indexMessages,
                 "devMode", devModeConfig.enabled(),
-                "mailingLists", mailingLists,
+                "mailingLists", sortedMailingLists,
                 "currentMonth", getCurrentYearMonth(),
                 "paths", pathsConfig
         );
