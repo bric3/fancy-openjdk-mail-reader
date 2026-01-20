@@ -71,7 +71,7 @@ fancymail:
 # UI Messages - can be overridden to customize text
 messages:
   index:
-    title: Fancy Mail
+    title: Fancy OpenJDK Mailing List
     subtitle: Beautify OpenJDK mailing list emails
     form-label: "Paste an OpenJDK mailing list URL:"
     form-placeholder: "https://mail.openjdk.org/pipermail/amber-spec-experts/2026-January/004307.html"
@@ -84,7 +84,7 @@ messages:
     feature-links-title: Link Rewriting
     feature-links-desc: Links to other mails open in this reader too
   rendered:
-    back: Back to Fancy Mail
+    back: Back to Home Page
     error-label: "Error:"
     error-goback: Go back and try another URL
     meta-from: "From:"
@@ -107,7 +107,7 @@ messages:
     thread-current: Current message
     thread-merkle-root: "Merkle root:"
   threads:
-    back: Back to Fancy Mail
+    back: Back to Home Page
     error-label: "Error:"
     error-goback: Go back and try again
     threads-title: Threads
