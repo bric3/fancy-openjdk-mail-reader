@@ -126,29 +126,6 @@
         button:active {
             transform: translateY(0);
         }
-        .example {
-            margin-top: 30px;
-            padding: 20px;
-            background: var(--card-bg);
-            border-radius: 8px;
-            font-size: 0.9em;
-        }
-        .example h3 {
-            margin: 0 0 10px 0;
-            color: var(--text-secondary);
-            font-size: 0.9em;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .example code {
-            background: var(--code-bg);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'SF Mono', Monaco, monospace;
-            font-size: clamp(0.65em, 2vw, 0.92em);
-            word-break: break-all;
-            color: var(--text-primary);
-        }
         .features {
             margin-top: 30px;
             display: grid;
@@ -288,9 +265,6 @@
             button {
                 padding: 12px 20px;
             }
-            .example {
-                padding: 15px;
-            }
             .features {
                 gap: 10px;
             }
@@ -315,11 +289,6 @@
                    autofocus>
             <button type="submit">${msg.formSubmit()}</button>
         </form>
-
-        <div class="example">
-            <h3>${msg.exampleTitle()}</h3>
-            <p><code>${msg.formPlaceholder()}</code></p>
-        </div>
 
         @if(mailingLists != null && !mailingLists.isEmpty())
         <div class="mailing-lists">
